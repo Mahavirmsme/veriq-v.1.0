@@ -1,0 +1,16 @@
+{
+  "name": "Trilok Enterprise",
+  "code": "TRILOK-01",
+  "organizationType": "Government",
+  "description": "Logistics and transport infrastructure",
+  "contactPerson": "trilok",
+  "designation": "dir",
+  "contactEmail": "trilok.jha@ashwinilogistics.in",
+  "contactMobile": "7021207522",
+  "addressLine1": "mumbia",
+  "addressLine2": "belapur",
+  "city": "mumbai",
+  "state": "Maharashtra",
+  "country": "India",
+  "pinCode": "400614"
+}
