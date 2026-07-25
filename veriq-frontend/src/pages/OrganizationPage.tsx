@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit3, Trash2, Mail, UserCheck, Shield, FolderKanban, AlertTriangle, ChevronRight, RefreshCw, Filter, Building, CheckCircle2 } from 'lucide-react';
 import { useOrganizationState } from '../hooks/useOrganizationState';
 import { Organization, CreateOrganizationPayload, UpdateOrganizationPayload } from '../services/organizationService';
@@ -300,11 +301,28 @@ export const OrganizationPage: React.FC = () => {
                       <span>{org.contactEmail}</span>
                     </div>
                   </td>
-                  <td style={{ color: '#1F2937', fontWeight: 500 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                  <td>
+                    <button
+                      onClick={() => navigate(`/projects?organizationId=${org.id}`)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#2563EB',
+                        background: '#EFF6FF',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '4px',
+                        padding: '3px 8px',
+                        cursor: 'pointer',
+                        transition: 'all 100ms ease'
+                      }}
+                      title="Drill-down to Projects for this Organization"
+                    >
                       <FolderKanban size={13} color="#2563EB" />
-                      <span>{org.projectCount || 0}</span>
-                    </div>
+                      <span>{org.projectCount || 0} Projects</span>
+                    </button>
                   </td>
                   <td>
                     <span className="badge badge-active">

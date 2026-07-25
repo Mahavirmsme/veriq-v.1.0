@@ -1,0 +1,11 @@
+{
+  "projectId": "e0e2410a-313d-4c3e-9081-309d73d6bbbb",
+  "assetName": "Mumbai Coastal Road Phase 1",
+  "assetCode": "AST-COAST-01",
+  "assetDescription": "High-speed coastal freeway corridor",
+  "assetClass": "Expressway",
+  "assetNature": "Linear",
+  "startChainage": 0.000,
+  "endChainage": 21.800,
+  "assetStatus": "ACTIVE"
+}

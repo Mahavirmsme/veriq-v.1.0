@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, User, KeyRound, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Lock, User, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('veriq2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -14,18 +14,30 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
-      setError('Please enter valid credentials.');
+    if (!email.trim() || !password) {
+      setError('Please enter your credentials.');
       return;
     }
     setLoading(true);
     setError('');
 
     try {
-      await login(username);
-      navigate('/organizations');
-    } catch {
-      setError('Authentication failed. Please check credentials.');
+      const session = await login(email.trim(), password);
+      // Workspace Resolution
+      if (session.allowedWorkspaces && session.allowedWorkspaces.length > 1) {
+        // Multi-role / Multi-workspace -> Open Workspace Selector
+        navigate('/workspace-selector', { replace: true });
+      } else if (session.allowedWorkspaces && session.allowedWorkspaces.length === 1) {
+        // Single role / Single workspace -> Open default workspace directly
+        const ws = session.allowedWorkspaces[0];
+        if (ws === 'administration') navigate('/admin', { replace: true });
+        else if (ws === 'configuration') navigate('/config', { replace: true });
+        else navigate('/ops', { replace: true });
+      } else {
+        navigate('/admin', { replace: true });
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'Authentication failed. Invalid username or password.');
     } finally {
       setLoading(false);
     }
@@ -33,85 +45,107 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div style={{
-      minHeight: '75vh',
+      minHeight: '80vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '20px',
+      fontFamily: 'Inter, sans-serif'
     }}>
-      <div className="glass-panel" style={{
+      <div style={{
         width: '100%',
-        maxWidth: '440px',
-        padding: '40px',
-        borderRadius: 'var(--radius-xl)',
-        boxShadow: 'var(--shadow-lg)'
+        maxWidth: '420px',
+        padding: '36px',
+        background: '#1E293B',
+        border: '1px solid #334155',
+        borderRadius: '8px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'var(--gradient-brand)',
+            width: '44px',
+            height: '44px',
+            borderRadius: '8px',
+            background: '#2563EB',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '16px',
-            boxShadow: 'var(--shadow-glow)'
+            marginBottom: '14px',
+            color: '#FFFFFF'
           }}>
-            <ShieldCheck size={28} color="#ffffff" />
+            <ShieldCheck size={24} color="#ffffff" />
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#ffffff' }}>VERIQ Platform Sign In</h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#ffffff', margin: 0 }}>VERIQ Platform Sign In</h2>
+          <p style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>
             Enterprise Decision Intelligence Gateway
           </p>
         </div>
 
         {error && (
           <div style={{
-            padding: '12px',
-            borderRadius: 'var(--radius-md)',
+            padding: '10px 14px',
+            borderRadius: '4px',
             background: 'rgba(239, 68, 68, 0.15)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#fca5a5',
-            fontSize: '13px',
-            marginBottom: '20px'
+            color: '#F87171',
+            fontSize: '12px',
+            fontWeight: 600,
+            marginBottom: '18px'
           }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-              USERNAME / ACCOUNT IDENTIFIER
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#CBD5E1', marginBottom: '6px', textTransform: 'uppercase' }}>
+              USERNAME / EMAIL ADDRESS
             </label>
             <div style={{ position: 'relative' }}>
-              <User size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+              <User size={16} color="#64748B" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
-                className="input-field"
-                style={{ paddingLeft: '42px' }}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="enter username..."
+                name="veriq_login_email"
+                autoComplete="off"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  background: '#0F172A',
+                  border: '1px solid #334155',
+                  borderRadius: '4px',
+                  color: '#FFFFFF',
+                  fontSize: '13px'
+                }}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter username or email address..."
                 required
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#CBD5E1', marginBottom: '6px', textTransform: 'uppercase' }}>
               SECURITY PASSWORD
             </label>
             <div style={{ position: 'relative' }}>
-              <Lock size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+              <Lock size={16} color="#64748B" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="password"
-                className="input-field"
-                style={{ paddingLeft: '42px' }}
+                name="veriq_login_password"
+                autoComplete="new-password"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 38px',
+                  background: '#0F172A',
+                  border: '1px solid #334155',
+                  borderRadius: '4px',
+                  color: '#FFFFFF',
+                  fontSize: '13px'
+                }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder="Enter password..."
                 required
               />
             </div>
@@ -119,32 +153,34 @@ export const LoginPage: React.FC = () => {
 
           <button
             type="submit"
-            className="btn-primary"
             disabled={loading}
-            style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: '8px' }}
+            style={{
+              width: '100%',
+              background: '#2563EB',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '10px 16px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginTop: '6px'
+            }}
           >
             {loading ? (
               <span>Authenticating...</span>
             ) : (
               <>
                 <span>Sign In to Platform</span>
-                <ArrowRight size={18} />
+                <ArrowRight size={16} />
               </>
             )}
           </button>
         </form>
-
-        <div style={{
-          marginTop: '24px',
-          paddingTop: '20px',
-          borderTop: '1px solid var(--border-color)',
-          textAlign: 'center',
-          fontSize: '12px',
-          color: 'var(--text-muted)'
-        }}>
-          <KeyRound size={14} style={{ display: 'inline', marginRight: '6px' }} />
-          <span>Demo Account: admin / veriq2026</span>
-        </div>
       </div>
     </div>
   );

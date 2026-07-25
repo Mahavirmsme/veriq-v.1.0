@@ -1,15 +1,20 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Building2, Home, FolderKanban, Cpu, Layers, Activity, BrainCircuit } from 'lucide-react';
+import { Building2, Home, FolderKanban, Layers, Cpu, Activity, BrainCircuit, Radio, GitCommit, Sliders, Database, ShieldAlert } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const navItems = [
     { label: 'Overview', path: '/', icon: Home },
+    { label: 'Command Center', path: '/command-center', icon: ShieldAlert },
     { label: 'Organizations', path: '/organizations', icon: Building2 },
-    { label: 'Projects', path: '/projects', icon: FolderKanban, disabled: true },
-    { label: 'Engineering Design', path: '/engineering-design', icon: Cpu, disabled: true },
-    { label: 'Deployment Designer', path: '/deployment-designer', icon: Layers, disabled: true },
-    { label: 'Commissioning & Ops', path: '/operations', icon: Activity, disabled: true },
+    { label: 'Projects', path: '/projects', icon: FolderKanban },
+    { label: 'Assets', path: '/assets', icon: Layers },
+    { label: 'Engineering Design', path: '/engineering-design', icon: Cpu },
+    { label: 'Deployment Designer', path: '/deployment-designer', icon: Radio },
+    { label: 'Node Designer', path: '/node-designer', icon: GitCommit },
+    { label: 'Sensor Designer', path: '/sensor-designer', icon: Sliders },
+    { label: 'Commissioning & Ops', path: '/operations', icon: Activity },
+    { label: 'Runtime Registry', path: '/runtime-sensors', icon: Database },
     { label: 'Decision Intelligence', path: '/intelligence', icon: BrainCircuit, disabled: true },
   ];
 
@@ -66,7 +71,7 @@ export const Sidebar: React.FC = () => {
               transition: 'all 100ms ease'
             })}
           >
-            <Icon size={16} color={item.path === '/organizations' ? '#2563EB' : '#6B7280'} />
+            <Icon size={16} color={item.path === '/command-center' ? '#2563EB' : '#6B7280'} />
             <span>{item.label}</span>
           </NavLink>
         );

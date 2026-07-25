@@ -1,0 +1,96 @@
+/*
+  VERIQ Engineering Decision Panel CSS (Region-4)
+  Visually Secondary Action Guidance Surface
+  Subtle Contrast, Clean White / Off-White Cards
+*/
+
+.veriq-decision-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #0F172A;
+  padding: 12px;
+  gap: 10px;
+  user-select: none;
+}
+
+.veriq-decision-header-title {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #E2E8F0;
+  margin-bottom: 2px;
+}
+
+.veriq-decision-header-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 0.02em;
+}
+
+/* Section Box Base */
+.veriq-decision-section {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.veriq-decision-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Cards & Lists Items Base */
+.veriq-decision-item-placeholder {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #475569;
+  font-family: monospace;
+}
+
+.veriq-decision-action-btn {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #2563EB;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+/* Section 5 Reserved Expandable Box */
+.veriq-decision-future-box {
+  flex: 1;
+  background-color: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}

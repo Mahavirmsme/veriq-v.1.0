@@ -1,25 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-export interface User {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  role: string;
-}
+import { authService, UserSession } from '../services/authService';
 
 interface AuthContextType {
-  user: User | null;
+  user: UserSession | null;
   isAuthenticated: boolean;
-  login: (username: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<UserSession>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('veriq_user');
+  const [user, setUser] = useState<UserSession | null>(() => {
+    const saved = localStorage.getItem('veriq_user_session');
     return saved ? JSON.parse(saved) : null;
   });
 
@@ -27,27 +20,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('veriq_user', JSON.stringify(user));
+      localStorage.setItem('veriq_user_session', JSON.stringify(user));
     } else {
-      localStorage.removeItem('veriq_user');
+      localStorage.removeItem('veriq_user_session');
     }
   }, [user]);
 
-  const login = async (username: string): Promise<boolean> => {
-    // Simulate enterprise authentication handshake
-    const mockUser: User = {
-      id: 'usr-1001',
-      username,
-      name: username === 'admin' ? 'Chief Technical Officer' : 'Lead Systems Architect',
-      email: `${username}@veriq-platform.io`,
-      role: 'ENTERPRISE_ADMIN',
-    };
-    setUser(mockUser);
-    return true;
+  const login = async (username: string, password: string): Promise<UserSession> => {
+    const session = await authService.login(username, password);
+    setUser(session);
+    return session;
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('veriq_user_session');
   };
 
   return (

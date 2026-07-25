@@ -1,0 +1,21 @@
+{
+  "regionId": "c6b907f9-6799-4c8d-bfdf-79d8eb69701a",
+  "zones": [
+    {
+      "zoneCode": "Z-01",
+      "zoneName": "High Risk Seawall Corridor",
+      "priority": "Very High",
+      "startChainage": 0.000,
+      "endChainage": 3.000,
+      "nodeSpacing": 100.00
+    },
+    {
+      "zoneCode": "Z-02",
+      "zoneName": "Standard Coastal Highway Zone",
+      "priority": "High",
+      "startChainage": 3.000,
+      "endChainage": 7.000,
+      "nodeSpacing": 200.00
+    }
+  ]
+}

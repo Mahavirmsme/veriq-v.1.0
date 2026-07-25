@@ -1,0 +1,22 @@
+/*
+  VERIQ Permanent Application Shell CSS
+  Outer frame enclosing Header and Workspace Body
+*/
+
+.veriq-app-shell {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  background-color: #0F172A;
+}
+
+.veriq-app-shell-body {
+  flex: 1;
+  width: 100%;
+  height: calc(100vh - 54px);
+  overflow: hidden;
+  box-sizing: border-box;
+}

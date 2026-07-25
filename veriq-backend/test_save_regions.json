@@ -1,0 +1,23 @@
+{
+  "assetId": "8b47a9f2-1200-4b8c-9c90-2b1d34ef1201",
+  "regions": [
+    {
+      "regionCode": "R-01",
+      "regionName": "South Coastal Corridor",
+      "startChainage": 0.000,
+      "endChainage": 7.000
+    },
+    {
+      "regionCode": "R-02",
+      "regionName": "Central Marine Tunnel Segment",
+      "startChainage": 7.000,
+      "endChainage": 14.500
+    },
+    {
+      "regionCode": "R-03",
+      "regionName": "North Seafront Link",
+      "startChainage": 14.500,
+      "endChainage": 21.800
+    }
+  ]
+}
