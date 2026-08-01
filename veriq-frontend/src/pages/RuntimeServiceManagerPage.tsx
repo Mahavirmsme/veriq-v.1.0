@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChevronRight, Activity, Play, Pause, RefreshCw, Zap, Clock, Terminal, Radio, ShieldCheck, Database, Layers, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Activity, Play, Pause, Zap, Clock, Terminal, Radio, ShieldCheck, Database } from 'lucide-react';
 import { useRuntimeServiceManager } from '../hooks/useRuntimeServiceManager';
+import { EngineeringWorkspaceSecondaryNav } from '../components/EngineeringWorkspaceSecondaryNav';
 
 export const RuntimeServiceManagerPage: React.FC = () => {
   const { status, loading, error, lastProducedPackets, startService, pauseService, triggerManualCycle } = useRuntimeServiceManager();
@@ -9,6 +10,7 @@ export const RuntimeServiceManagerPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto' }}>
+      <EngineeringWorkspaceSecondaryNav />
       
       {/* Enterprise Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>

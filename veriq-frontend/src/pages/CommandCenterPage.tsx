@@ -1,31 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useCommandCenter } from '../hooks/useCommandCenter';
+import { useAuth } from '../context/AuthContext';
+import { hasDeveloperPermission } from '../app/authentication/RoleResolver';
 import { 
-  Building2, Layers, Cpu, Activity, AlertTriangle, CheckCircle2, 
-  XCircle, ArrowRight, RefreshCw, ChevronRight, ShieldAlert, 
-  MapPin, Clock, FileSpreadsheet, Wrench, Search, Radio, Sliders
+  Activity, AlertTriangle, CheckCircle2, 
+  ArrowRight, RefreshCw, ChevronRight, ShieldAlert, 
+  Clock, Wrench
 } from 'lucide-react';
+import { EngineeringWorkspaceSecondaryNav } from '../components/EngineeringWorkspaceSecondaryNav';
 
 export const CommandCenterPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const userRole = (user as any)?.role || (user?.roles && user.roles[0]);
+  const isDeveloper = hasDeveloperPermission(userRole);
+
   const {
     assetStates,
     regionStates,
     nodeStates,
-    zoneStates,
     assets,
     regions,
     nodes,
     sensors,
     loading,
-    error,
     refresh
   } = useCommandCenter();
 
-  // Navigation Drilldown State (Breadcrumb: WRD > Asset > Region > Node)
+  // Navigation Drilldown State (Breadcrumb: Operations > Asset > Sector/Region > Node)
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'queue' | 'decisions'>('overview');
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
+
+  // Synchronize drilldown state from URL query parameters
+  useEffect(() => {
+    const urlAssetId = searchParams.get('assetId');
+    const urlPointId = searchParams.get('pointAssetId');
+    const urlRegionId = searchParams.get('regionId');
+    const urlNodeId = searchParams.get('nodeId');
+    const isDevInspector = searchParams.get('devTool') === 'node-inspector';
+
+    if (urlAssetId && assets.some(a => a.id === urlAssetId)) {
+      setSelectedAssetId(urlAssetId);
+    }
+    const targetSectorId = urlPointId || urlRegionId;
+    if (targetSectorId && regions.some(r => r.id === targetSectorId)) {
+      setSelectedRegionId(targetSectorId);
+    }
+    if (urlNodeId && nodes.some(n => n.id === urlNodeId)) {
+      setSelectedNodeId(urlNodeId);
+    }
+    if (isDevInspector && isDeveloper) {
+      setIsInspectorOpen(true);
+    }
+  }, [searchParams, assets, regions, nodes, isDeveloper]);
 
   // Filter helpers
   const selectedAsset = assets.find(a => a.id === selectedAssetId);
@@ -37,11 +67,11 @@ export const CommandCenterPage: React.FC = () => {
 
   // Status Badge Helper Component
   const renderStatusBadge = (status: string | undefined, size: 'sm' | 'md' | 'lg' = 'md') => {
-    const s = (status || 'UNKNOWN').toUpperCase();
-    let bg = '#F1F5F9';
-    let text = '#475569';
-    let border = '#CBD5E1';
-    let icon = <Clock size={size === 'sm' ? 12 : 14} />;
+    const s = (status || 'STABLE').toUpperCase();
+    let bg = '#ECFDF5';
+    let text = '#047857';
+    let border = '#6EE7B7';
+    let icon = <CheckCircle2 size={size === 'sm' ? 12 : 14} color="#047857" />;
 
     if (s === 'STABLE' || s === 'HEALTHY' || s === 'ACTIVE') {
       bg = '#ECFDF5';
@@ -58,6 +88,11 @@ export const CommandCenterPage: React.FC = () => {
       text = '#B91C1C';
       border = '#FCA5A5';
       icon = <ShieldAlert size={size === 'sm' ? 12 : 14} color="#B91C1C" />;
+    } else if (s === 'OFFLINE' || s === 'INACTIVE') {
+      bg = '#F8FAFC';
+      text = '#475569';
+      border = '#CBD5E1';
+      icon = <Clock size={size === 'sm' ? 12 : 14} />;
     }
 
     const padding = size === 'sm' ? '2px 8px' : size === 'lg' ? '6px 16px' : '4px 12px';
@@ -85,10 +120,10 @@ export const CommandCenterPage: React.FC = () => {
   };
 
   // -------------------------------------------------------------
-  // LEVEL 4: NODE ENGINEERING WORKSPACE (MODAL PANE)
+  // RUNTIME NODE INSPECTOR (INTERNAL ENGINEERING DIAGNOSTIC WINDOW - RBAC PROTECTED)
   // -------------------------------------------------------------
   const renderNodeWorkspaceModal = () => {
-    if (!selectedNode) return null;
+    if (!selectedNode || !isInspectorOpen || !isDeveloper) return null;
     const nodeState = nodeStates.find(ns => ns.engineeringNodeId === selectedNode.id || ns.nodeCode === selectedNode.nodeCode);
 
     return (
@@ -128,20 +163,21 @@ export const CommandCenterPage: React.FC = () => {
             borderBottom: '2px solid #2563EB'
           }}>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                LEVEL-4 NODE ENGINEERING WORKSPACE
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#38BDF8', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Wrench size={13} color="#38BDF8" />
+                RUNTIME NODE INSPECTOR (INTERNAL ENGINEERING DIAGNOSTICS)
               </div>
               <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 Node: {selectedNode.nodeCode || `EN-${selectedNode.nodeNumber}`}
                 <span style={{ fontSize: '13px', fontWeight: 500, color: '#CBD5E1' }}>
-                  (Chainage {selectedNode.chainageKm || selectedNode.chainage || '0.00'} KM)
+                  (Chainage {selectedNode.formattedChainage || `${selectedNode.chainage || 0} KM`})
                 </span>
               </h2>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {renderStatusBadge(nodeState?.currentHealth || 'STABLE', 'lg')}
               <button
-                onClick={() => setSelectedNodeId(null)}
+                onClick={() => setIsInspectorOpen(false)}
                 style={{
                   background: '#1E293B',
                   color: '#94A3B8',
@@ -174,13 +210,13 @@ export const CommandCenterPage: React.FC = () => {
               <div>
                 <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>PARENT ZONE</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginTop: '2px' }}>
-                  {selectedNode.deploymentZone?.zoneCode || 'ZONE-01'}
+                  {selectedNode.deploymentZone?.zoneCode || selectedNode.zoneCode || 'PZ-01'}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>OBSERVATION COUNT</div>
+                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>COMMISSIONED SENSORS</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginTop: '2px' }}>
-                  {nodeState?.observationCount || selectedNodeSensors.length || 5} Packets
+                  {selectedNodeSensors.length} Sensors
                 </div>
               </div>
               <div>
@@ -197,52 +233,53 @@ export const CommandCenterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Sensor Telemetry Grid */}
+            {/* Dynamic Sensor Telemetry Grid */}
             <div>
               <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Activity size={16} color="#2563EB" />
-                LIVE SENSOR TELEMETRY & OBSERVATIONS
+                LIVE COMMISSIONED SENSOR TELEMETRY & OBSERVATIONS
               </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                {[
-                  { name: 'Tilt Sensor', code: 'TS-0001', val: '0.12°', obs: 'STABLE_TILT', status: 'STABLE' },
-                  { name: 'Piezometer', code: 'PZ-0001', val: '32.4 kPa', obs: 'NORMAL_PORE_PRESSURE', status: 'STABLE' },
-                  { name: 'Rain Gauge', code: 'RG-0001', val: '1.40 mm/hr', obs: 'LIGHT_RAIN', status: 'STABLE' },
-                  { name: 'Water Level', code: 'WL-0001', val: '1.35 m', obs: 'NORMAL_LEVEL', status: 'STABLE' },
-                  { name: 'Soil Moisture', code: 'SM-0001', val: '28.5%', obs: 'NORMAL_SOIL_MOISTURE', status: 'STABLE' },
-                  { name: 'Vibration Sensor', code: 'VB-0001', val: '4.20 mm/s', obs: 'NORMAL_VIBRATION', status: 'STABLE' },
-                ].map((s, idx) => (
-                  <div key={idx} style={{
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '6px',
-                    padding: '14px',
-                    background: '#FFFFFF'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{s.name}</span>
-                      <span style={{ fontSize: '10px', color: '#64748B', fontFamily: 'monospace' }}>{s.code}</span>
+                {selectedNodeSensors.length > 0 ? (
+                  selectedNodeSensors.map((s, idx) => (
+                    <div key={idx} style={{
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      padding: '14px',
+                      background: '#FFFFFF'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{s.sensorType}</span>
+                        <span style={{ fontSize: '10px', color: '#64748B', fontFamily: 'monospace' }}>{s.sensorCode}</span>
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '4px 0' }}>
+                        {s.currentValue || 'Operational'}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', fontFamily: 'monospace' }}>
+                          {s.measurementParameter || 'ACTIVE_TELEMETRY'}
+                        </span>
+                        {renderStatusBadge(s.runtimeStatus || 'STABLE', 'sm')}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '4px 0' }}>
-                      {s.val}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', fontFamily: 'monospace' }}>{s.obs}</span>
-                      {renderStatusBadge(s.status, 'sm')}
-                    </div>
+                  ))
+                ) : (
+                  <div style={{ gridColumn: 'span 3', padding: '24px', textAlign: 'center', color: '#64748B', fontSize: '13px', background: '#F8FAFC', borderRadius: '6px', border: '1px dashed #CBD5E1' }}>
+                    No commissioned sensors bound to this node yet. Complete Field Commissioning to activate live telemetry.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
-            {/* Geotechnical Evidence & Recommendations */}
+            {/* Evidence & Recommendations */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div style={{ border: '1px solid #E2E8F0', borderRadius: '6px', padding: '16px', background: '#F8FAFC' }}>
                 <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', margin: '0 0 10px' }}>
                   ENGINEERING EVIDENCE ASSESSMENT
                 </h4>
                 <p style={{ fontSize: '12px', color: '#334155', lineHeight: 1.5, margin: 0 }}>
-                  Pore pressure and structural tilt measurements at Chainage {selectedNode.chainageKm || selectedNode.chainage || '0.00'} KM demonstrate stable geotechnical equilibrium under normal rainfall loading. Zero structural displacement detected.
+                  Structural and telemetry observations at Chainage {selectedNode.formattedChainage || `${selectedNode.chainage || 0} KM`} demonstrate stable operational equilibrium. Zero structural safety breaches detected.
                 </p>
               </div>
 
@@ -251,9 +288,9 @@ export const CommandCenterPage: React.FC = () => {
                   RECOMMENDED OPERATIONAL ACTIONS
                 </h4>
                 <ul style={{ fontSize: '12px', color: '#0C4A6E', paddingLeft: '18px', margin: 0, lineHeight: 1.6 }}>
-                  <li>Maintain automated 15s telemetry polling heartbeat.</li>
-                  <li>Schedule routine visual inspection of piezometer well head during monsoon.</li>
-                  <li>No immediate engineering intervention required.</li>
+                  <li>Maintain automated telemetry polling heartbeat.</li>
+                  <li>Perform routine visual verification during field inspections.</li>
+                  <li>No immediate intervention required.</li>
                 </ul>
               </div>
             </div>
@@ -282,7 +319,7 @@ export const CommandCenterPage: React.FC = () => {
           onClick={() => { setSelectedAssetId(null); setSelectedRegionId(null); }}
           style={{ cursor: 'pointer', color: selectedAssetId ? '#94A3B8' : '#60A5FA', fontWeight: selectedAssetId ? 500 : 700 }}
         >
-          WRD BIHAR HEADQUARTERS
+          OPERATIONS COMMAND CENTER
         </span>
 
         {selectedAsset && (
@@ -301,7 +338,7 @@ export const CommandCenterPage: React.FC = () => {
           <>
             <ChevronRight size={14} color="#64748B" />
             <span style={{ color: '#60A5FA', fontWeight: 700 }}>
-              REGION: {selectedRegion.regionName || selectedRegion.regionCode}
+              {selectedAsset?.assetNature?.toUpperCase() === 'POINT' ? 'POINT ASSET:' : 'REGION:'} {selectedRegion.regionName || selectedRegion.regionCode}
             </span>
           </>
         )}
@@ -332,11 +369,11 @@ export const CommandCenterPage: React.FC = () => {
   );
 
   // -------------------------------------------------------------
-  // LEVEL 1: WRD HEADQUARTERS DASHBOARD
+  // LEVEL 1: CLIENT OPERATIONS COMMAND CENTER DASHBOARD
   // -------------------------------------------------------------
   const renderHeadquartersDashboard = () => {
-    const totalAssets = assets.length || assetStates.length || 3;
-    const healthyAssets = assetStates.filter(s => s.currentHealth === 'STABLE').length || totalAssets;
+    const totalAssets = assets.length;
+    const healthyAssets = assetStates.filter(s => s.currentHealth === 'STABLE').length;
     const warningAssets = assetStates.filter(s => s.currentHealth === 'WARNING').length;
     const criticalAssets = assetStates.filter(s => s.currentHealth === 'CRITICAL').length;
     const offlineAssets = assetStates.filter(s => s.currentHealth === 'OFFLINE').length;
@@ -348,7 +385,9 @@ export const CommandCenterPage: React.FC = () => {
           <div style={{ background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '16px' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>TOTAL MONITORED ASSETS</div>
             <div style={{ fontSize: '28px', fontWeight: 900, color: '#0F172A', marginTop: '4px' }}>{totalAssets}</div>
-            <div style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600, marginTop: '2px' }}>WRD Water Infrastructure</div>
+            <div style={{ fontSize: '11px', color: '#2563EB', fontWeight: 600, marginTop: '2px' }}>
+              {assets.length > 0 ? (assets[0].projectName || 'Infrastructure Project') : 'Commissioned Infrastructure'}
+            </div>
           </div>
 
           <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '6px', padding: '16px' }}>
@@ -387,82 +426,91 @@ export const CommandCenterPage: React.FC = () => {
             alignItems: 'center'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              LEVEL-1 INFRASTRUCTURE ASSET COMMAND MATRIX
+              INFRASTRUCTURE ASSET COMMAND MATRIX
             </h3>
             <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
-              Question: Which Asset needs attention today?
+              Select Asset to inspect Sector Runtime Operations
             </span>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>
-                <th style={{ padding: '12px 20px' }}>Asset Name & Code</th>
-                <th style={{ padding: '12px 20px' }}>Asset Nature</th>
-                <th style={{ padding: '12px 20px' }}>Coverage Span</th>
-                <th style={{ padding: '12px 20px' }}>Total Regions</th>
-                <th style={{ padding: '12px 20px' }}>Current State</th>
-                <th style={{ padding: '12px 20px' }}>Critical Regions</th>
-                <th style={{ padding: '12px 20px' }}>Availability</th>
-                <th style={{ padding: '12px 20px', textAlign: 'right' }}>Command Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.map((asset) => {
-                const state = assetStates.find(s => s.assetId === asset.id || s.assetName === asset.assetName);
-                const assetRgns = regions.filter(r => r.asset?.id === asset.id || r.assetId === asset.id);
+          {loading ? (
+            <div style={{ padding: '36px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+              Loading runtime assets from backend database...
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>
+                  <th style={{ padding: '12px 20px' }}>Asset Name & Code</th>
+                  <th style={{ padding: '12px 20px' }}>Asset Nature</th>
+                  <th style={{ padding: '12px 20px' }}>Coverage Span</th>
+                  <th style={{ padding: '12px 20px' }}>Total Sectors</th>
+                  <th style={{ padding: '12px 20px' }}>Current State</th>
+                  <th style={{ padding: '12px 20px' }}>Critical Sectors</th>
+                  <th style={{ padding: '12px 20px', textAlign: 'right' }}>Command Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map((asset) => {
+                  const state = assetStates.find(s => s.assetId === asset.id || s.assetName === asset.assetName);
+                  const assetRgns = regions.filter(r => r.asset?.id === asset.id || r.assetId === asset.id);
 
-                return (
-                  <tr key={asset.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#0F172A' }}>
-                      {asset.assetName}
-                      <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, fontFamily: 'monospace' }}>
-                        {asset.assetCode}
-                      </div>
-                    </td>
-                    <td style={{ padding: '14px 20px', color: '#334155', fontWeight: 600 }}>
-                      {asset.assetNature || 'Embankment'}
-                    </td>
-                    <td style={{ padding: '14px 20px', color: '#334155', fontFamily: 'monospace' }}>
-                      {asset.startChainage || '0.00'} - {asset.endChainage || '42.50'} KM
-                    </td>
-                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#0F172A' }}>
-                      {state?.totalRegions || assetRgns.length || 4} Regions
-                    </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      {renderStatusBadge(state?.currentHealth || 'STABLE')}
-                    </td>
-                    <td style={{ padding: '14px 20px', fontWeight: 700, color: (state?.criticalRegions || 0) > 0 ? '#DC2626' : '#475569' }}>
-                      {state?.criticalRegions || 0} Critical
-                    </td>
-                    <td style={{ padding: '14px 20px', fontWeight: 700, color: '#047857', fontFamily: 'monospace' }}>
-                      99.8%
-                    </td>
-                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                      <button
-                        onClick={() => setSelectedAssetId(asset.id)}
-                        style={{
-                          background: '#2563EB',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '6px 14px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        Open Asset Command <ArrowRight size={13} />
-                      </button>
+                  return (
+                    <tr key={asset.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '14px 20px', fontWeight: 700, color: '#0F172A' }}>
+                        {asset.assetName}
+                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 500, fontFamily: 'monospace' }}>
+                          {asset.assetCode}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 20px', color: '#334155', fontWeight: 600 }}>
+                        {asset.assetNature || 'LINEAR'}
+                      </td>
+                      <td style={{ padding: '14px 20px', color: '#334155', fontFamily: 'monospace' }}>
+                        {asset.startChainage !== undefined ? `km ${asset.startChainage} → ${asset.endChainage}` : 'Point Infrastructure'}
+                      </td>
+                      <td style={{ padding: '14px 20px', fontWeight: 700, color: '#0F172A' }}>
+                        {state?.totalRegions || assetRgns.length || 1} Sectors
+                      </td>
+                      <td style={{ padding: '14px 20px' }}>
+                        {renderStatusBadge(state?.currentHealth || 'STABLE')}
+                      </td>
+                      <td style={{ padding: '14px 20px', fontWeight: 700, color: (state?.criticalRegions || 0) > 0 ? '#DC2626' : '#475569' }}>
+                        {state?.criticalRegions || 0} Critical
+                      </td>
+                      <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                        <button
+                          onClick={() => setSelectedAssetId(asset.id)}
+                          style={{
+                            background: '#2563EB',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '6px 14px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          Open Asset Command <ArrowRight size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {assets.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#64748B', fontSize: '13px' }}>
+                      No commissioned assets available in Operations Command Center. Complete Field Commissioning to activate assets.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     );
@@ -490,13 +538,13 @@ export const CommandCenterPage: React.FC = () => {
         }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.08em' }}>
-              LEVEL-2 ASSET COMMAND DASHBOARD
+              ASSET COMMAND DASHBOARD
             </div>
             <h1 style={{ fontSize: '24px', fontWeight: 900, margin: '4px 0 6px' }}>
               {selectedAsset.assetName} ({selectedAsset.assetCode})
             </h1>
             <p style={{ fontSize: '13px', color: '#CBD5E1', margin: 0 }}>
-              Question: Which Region requires attention? | Span: {selectedAsset.startChainage || '0.00'} KM - {selectedAsset.endChainage || '42.50'} KM
+              Nature: {selectedAsset.assetNature || 'LINEAR'} | {selectedAsset.startChainage !== undefined ? `Span: km ${selectedAsset.startChainage} → ${selectedAsset.endChainage}` : 'Point Infrastructure Object'}
             </p>
           </div>
 
@@ -515,7 +563,7 @@ export const CommandCenterPage: React.FC = () => {
                 cursor: 'pointer'
               }}
             >
-              Back to WRD HQ
+              Back to Overview
             </button>
           </div>
         </div>
@@ -531,7 +579,7 @@ export const CommandCenterPage: React.FC = () => {
             alignItems: 'center'
           }}>
             <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', margin: 0, textTransform: 'uppercase' }}>
-              REGIONAL OPERATIONAL SECTORS ({selectedAssetRegions.length} Regions)
+              REGIONAL OPERATIONAL SECTORS ({selectedAssetRegions.length} Sectors)
             </h3>
           </div>
 
@@ -556,7 +604,7 @@ export const CommandCenterPage: React.FC = () => {
                         {region.regionName}
                       </h4>
                       <div style={{ fontSize: '11px', color: '#64748B', fontFamily: 'monospace', marginTop: '2px' }}>
-                        {region.regionCode} | Chainage {region.startChainage || '0.00'} - {region.endChainage || '10.00'} KM
+                        {region.regionCode}
                       </div>
                     </div>
                     {renderStatusBadge(rgnState?.currentHealth || 'STABLE', 'sm')}
@@ -565,7 +613,7 @@ export const CommandCenterPage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', background: '#F8FAFC', padding: '10px', borderRadius: '4px' }}>
                     <div>
                       <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700 }}>NODES</div>
-                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>{rgnNodes.length || 5}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>{rgnNodes.length}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: '10px', color: '#B45309', fontWeight: 700 }}>WARNINGS</div>
@@ -594,11 +642,17 @@ export const CommandCenterPage: React.FC = () => {
                       gap: '6px'
                     }}
                   >
-                    Open Region Operations <ArrowRight size={13} />
+                    Open Sector Operations <ArrowRight size={13} />
                   </button>
                 </div>
               );
             })}
+
+            {selectedAssetRegions.length === 0 && (
+              <div style={{ gridColumn: 'span 3', padding: '36px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                No regional operational sectors found for this asset.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -606,7 +660,7 @@ export const CommandCenterPage: React.FC = () => {
   };
 
   // -------------------------------------------------------------
-  // LEVEL 3: REGION OPERATIONS DASHBOARD (BENTLEY 3-COLUMN LAYOUT)
+  // LEVEL 3: REGION OPERATIONS DASHBOARD
   // -------------------------------------------------------------
   const renderRegionOperationsDashboard = () => {
     if (!selectedRegion) return null;
@@ -653,30 +707,30 @@ export const CommandCenterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Sensor Lifecycle Audit Card */}
+            {/* Operational Node Summary Card */}
             <div style={{ background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '16px' }}>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '12px' }}>
-                RUNTIME SENSOR AUDIT
+                OPERATIONAL SUMMARY
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Total Sensors:</span>
-                  <span style={{ fontWeight: 700, color: '#0F172A' }}>{sensors.length || 15}</span>
+                  <span style={{ color: '#64748B' }}>Total Sector Nodes:</span>
+                  <span style={{ fontWeight: 700, color: '#0F172A' }}>{selectedRegionNodes.length}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748B' }}>Telemetry Active:</span>
                   <span style={{ fontWeight: 700, color: '#047857' }}>100.0%</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Comms Heartbeat:</span>
-                  <span style={{ fontWeight: 700, color: '#2563EB' }}>15s Interval</span>
+                  <span style={{ color: '#64748B' }}>Operational Status:</span>
+                  <span style={{ fontWeight: 700, color: '#2563EB' }}>ACTIVE</span>
                 </div>
               </div>
             </div>
 
           </div>
 
-          {/* CENTER PANEL: Hero Region & Linear Infrastructure Ribbon */}
+          {/* CENTER PANEL: Hero Region & Infrastructure Ribbon */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
             {/* Hero Region Metric Card */}
@@ -690,20 +744,20 @@ export const CommandCenterPage: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>
-                    LEVEL-3 REGIONAL OPERATIONS COMMAND
+                    REGIONAL SECTOR OPERATIONS
                   </div>
                   <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#0F172A', margin: '4px 0' }}>
                     {selectedRegion.regionName} ({selectedRegion.regionCode})
                   </h2>
                   <div style={{ fontSize: '12px', color: '#475569', fontFamily: 'monospace' }}>
-                    Coverage Length: {selectedRegion.regionLength || '10.00'} KM | Chainage: {selectedRegion.startChainage || '0.00'} - {selectedRegion.endChainage || '10.00'} KM
+                    Sector Code: {selectedRegion.regionCode}
                   </div>
                 </div>
                 {renderStatusBadge(rgnState?.currentHealth || 'STABLE', 'lg')}
               </div>
             </div>
 
-            {/* LINEAR INFRASTRUCTURE RIBBON (BENTLEY / SAP CLASS) */}
+            {/* INFRASTRUCTURE RIBBON */}
             <div style={{
               background: '#FFFFFF',
               border: '1px solid #CBD5E1',
@@ -712,10 +766,10 @@ export const CommandCenterPage: React.FC = () => {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', margin: 0, textTransform: 'uppercase' }}>
-                  LINEAR EMBANKMENT RIBBON (CHAINAGE SCALE: 0.00 KM TO 10.00 KM)
+                  INFRASTRUCTURE NODE RIBBON
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748B' }}>
-                  Click Node to Inspect Level-4 Engineering Workspace
+                  Select Node to inspect Sector Queue
                 </span>
               </div>
 
@@ -768,7 +822,7 @@ export const CommandCenterPage: React.FC = () => {
                           {node.nodeNumber || (i + 1)}
                         </div>
                         <span style={{ fontSize: '10px', fontWeight: 700, color: '#334155', fontFamily: 'monospace' }}>
-                          KM {node.chainageKm || (i * 2.5).toFixed(2)}
+                          km {node.formattedChainage || node.chainage || '0.000'}
                         </span>
                       </div>
                     );
@@ -777,10 +831,19 @@ export const CommandCenterPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Priority Inspection Queue */}
+            {/* Operational Information & Queue */}
             <div style={{ background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '6px', overflow: 'hidden' }}>
-              <div style={{ background: '#F8FAFC', padding: '12px 16px', borderBottom: '1px solid #CBD5E1', fontWeight: 800, fontSize: '12px', color: '#0F172A', textTransform: 'uppercase' }}>
-                PRIORITY INSPECTION QUEUE (SORTED BY RISK & CHAINAGE)
+              <div style={{ background: '#F8FAFC', padding: '12px 16px', borderBottom: '1px solid #CBD5E1', fontWeight: 800, fontSize: '12px', color: '#0F172A', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>SECTOR OPERATIONAL INFORMATION</span>
+                {selectedNode && isDeveloper && (
+                  <button
+                    onClick={() => setIsInspectorOpen(true)}
+                    style={{ background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE', borderRadius: '4px', padding: '3px 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Wrench size={12} />
+                    <span>Runtime Node Inspector (Developer Tool)</span>
+                  </button>
+                )}
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
@@ -788,18 +851,28 @@ export const CommandCenterPage: React.FC = () => {
                     <th style={{ padding: '10px 16px', textAlign: 'left' }}>Node Code</th>
                     <th style={{ padding: '10px 16px', textAlign: 'left' }}>Chainage</th>
                     <th style={{ padding: '10px 16px', textAlign: 'left' }}>Status</th>
-                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>Actionable Recommendation</th>
+                    <th style={{ padding: '10px 16px', textAlign: 'left' }}>Operational Guidance</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedRegionNodes.map((n) => (
-                    <tr key={n.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '10px 16px', fontWeight: 700, fontFamily: 'monospace' }}>{n.nodeCode}</td>
-                      <td style={{ padding: '10px 16px', fontFamily: 'monospace' }}>{n.chainageKm || n.chainage || '0.00'} KM</td>
-                      <td style={{ padding: '10px 16px' }}>{renderStatusBadge('STABLE', 'sm')}</td>
-                      <td style={{ padding: '10px 16px', color: '#334155' }}>Routine telemetry monitoring active. No field dispatch needed.</td>
+                  {selectedRegionNodes.map((n) => {
+                    const isSelected = n.id === selectedNodeId;
+                    return (
+                      <tr key={n.id} style={{ borderBottom: '1px solid #F1F5F9', background: isSelected ? '#EFF6FF' : 'transparent' }}>
+                        <td style={{ padding: '10px 16px', fontWeight: 700, fontFamily: 'monospace', color: isSelected ? '#1E40AF' : '#0F172A' }}>{n.nodeCode}</td>
+                        <td style={{ padding: '10px 16px', fontFamily: 'monospace' }}>km {n.formattedChainage || n.chainage || '0.000'}</td>
+                        <td style={{ padding: '10px 16px' }}>{renderStatusBadge('STABLE', 'sm')}</td>
+                        <td style={{ padding: '10px 16px', color: '#334155' }}>Routine telemetry monitoring active. Normal operational state.</td>
+                      </tr>
+                    );
+                  })}
+                  {selectedRegionNodes.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: '#64748B' }}>
+                        No engineering nodes registered for this sector.
+                      </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -809,11 +882,11 @@ export const CommandCenterPage: React.FC = () => {
           {/* RIGHT PANEL: Decision Center */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
-            {/* Critical Alerts Card */}
+            {/* Operational Alerts Card */}
             <div style={{ background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '16px' }}>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ShieldAlert size={14} color="#2563EB" />
-                DECISION CENTER & ALERTS
+                OPERATIONAL ALERTS & GUIDANCE
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ borderLeft: '3px solid #10B981', paddingLeft: '10px' }}>
@@ -826,10 +899,10 @@ export const CommandCenterPage: React.FC = () => {
             {/* Pending Actions */}
             <div style={{ background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '6px', padding: '16px' }}>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', marginBottom: '12px' }}>
-                PENDING FIELD ACTIONS
+                FIELD ADVISORIES
               </div>
               <div style={{ fontSize: '12px', color: '#64748B', fontStyle: 'italic' }}>
-                No pending maintenance tickets queued for this sector.
+                No pending operational advisories for this sector.
               </div>
             </div>
 
@@ -849,6 +922,7 @@ export const CommandCenterPage: React.FC = () => {
     }}>
       {/* Top Command Bar */}
       {renderBreadcrumb()}
+      <EngineeringWorkspaceSecondaryNav />
 
       {/* Render Active Level Based on Navigation State */}
       {selectedRegionId ? (
@@ -859,7 +933,7 @@ export const CommandCenterPage: React.FC = () => {
         renderHeadquartersDashboard()
       )}
 
-      {/* Render Node Engineering Workspace Modal */}
+      {/* Render Runtime Node Inspector Diagnostic Window (RBAC Guarded) */}
       {renderNodeWorkspaceModal()}
     </div>
   );

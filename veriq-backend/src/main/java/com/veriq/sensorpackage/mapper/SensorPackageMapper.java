@@ -34,6 +34,9 @@ public class SensorPackageMapper {
                 itemDto.setId(item.getId());
                 itemDto.setSensorType(item.getSensorType());
                 itemDto.setQuantity(item.getQuantity());
+                itemDto.setSamplingSeconds(item.getSamplingSeconds() != null ? item.getSamplingSeconds() : 1);
+                itemDto.setWarningThreshold(item.getWarningThreshold());
+                itemDto.setCriticalThreshold(item.getCriticalThreshold());
                 itemDto.setMeasurementParameter(item.getMeasurementParameter());
                 itemDto.setEngineeringPurpose(item.getEngineeringPurpose());
                 itemDto.setRemarks(item.getRemarks());
@@ -54,6 +57,9 @@ public class SensorPackageMapper {
         entity.setSensorPackage(pkg);
         entity.setSensorType(dto.getSensorType() != null ? dto.getSensorType().trim() : null);
         entity.setQuantity(dto.getQuantity() != null && dto.getQuantity() > 0 ? dto.getQuantity() : 1);
+        entity.setSamplingSeconds(dto.getSamplingSeconds() != null && dto.getSamplingSeconds() > 0 ? dto.getSamplingSeconds() : 1);
+        entity.setWarningThreshold(dto.getWarningThreshold());
+        entity.setCriticalThreshold(dto.getCriticalThreshold());
         entity.setMeasurementParameter(dto.getMeasurementParameter());
         entity.setEngineeringPurpose(dto.getEngineeringPurpose());
         entity.setRemarks(dto.getRemarks());

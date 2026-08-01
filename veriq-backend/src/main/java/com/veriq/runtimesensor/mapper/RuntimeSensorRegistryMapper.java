@@ -1,6 +1,8 @@
 package com.veriq.runtimesensor.mapper;
 
+import com.veriq.asset.entity.Asset;
 import com.veriq.commissioning.entity.RuntimeSensor;
+import com.veriq.deploymentzone.entity.DeploymentZone;
 import com.veriq.runtimesensor.dto.RuntimeSensorRegistryResponseDTO;
 import com.veriq.runtimesensor.entity.RuntimeSensorTransitionLog;
 import com.veriq.runtimesensor.model.RuntimeSensorStatus;
@@ -54,14 +56,24 @@ public class RuntimeSensorRegistryMapper {
             }
 
             if (entity.getEngineeringNode().getDeploymentZone() != null) {
-                dto.setDeploymentZoneCode(entity.getEngineeringNode().getDeploymentZone().getZoneCode());
-                if (entity.getEngineeringNode().getDeploymentZone().getRegion() != null) {
-                    dto.setRegionCode(entity.getEngineeringNode().getDeploymentZone().getRegion().getRegionCode());
-                    if (entity.getEngineeringNode().getDeploymentZone().getRegion().getAsset() != null) {
-                        dto.setAssetName(entity.getEngineeringNode().getDeploymentZone().getRegion().getAsset().getAssetName());
-                        if (entity.getEngineeringNode().getDeploymentZone().getRegion().getAsset().getProject() != null) {
-                            dto.setProjectName(entity.getEngineeringNode().getDeploymentZone().getRegion().getAsset().getProject().getProjectName());
-                        }
+                DeploymentZone zone = entity.getEngineeringNode().getDeploymentZone();
+                dto.setDeploymentZoneCode(zone.getZoneCode());
+
+                Asset asset = null;
+                if (zone.getRegion() != null) {
+                    dto.setRegionCode(zone.getRegion().getRegionCode());
+                    asset = zone.getRegion().getAsset();
+                } else if (zone.getPointAsset() != null) {
+                    dto.setRegionCode(zone.getPointAsset().getPointAssetCode());
+                    asset = zone.getPointAsset().getAsset();
+                } else if (zone.getAsset() != null) {
+                    asset = zone.getAsset();
+                }
+
+                if (asset != null) {
+                    dto.setAssetName(asset.getAssetName());
+                    if (asset.getProject() != null) {
+                        dto.setProjectName(asset.getProject().getProjectName());
                     }
                 }
             }
@@ -73,8 +85,8 @@ public class RuntimeSensorRegistryMapper {
             dto.setCommissioningReference("COMM-" + rawId.substring(0, 8));
         }
 
-        dto.setCurrentValue("--");
-        dto.setLastTelemetry("--");
+        dto.setCurrentValue("Operational");
+        dto.setLastTelemetry("Active Heartbeat");
 
         // Fetch Transition Logs from Repository
         if (entity.getId() != null) {

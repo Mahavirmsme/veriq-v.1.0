@@ -1,6 +1,8 @@
 package com.veriq.nodestate.service;
 
 import com.veriq.common.exception.ResourceNotFoundException;
+import com.veriq.commissioning.entity.CommissioningRecord;
+import com.veriq.commissioning.repository.CommissioningRecordRepository;
 import com.veriq.deploymentzonehealth.service.DeploymentZoneHealthEngineService;
 import com.veriq.engineeringnode.entity.EngineeringNode;
 import com.veriq.engineeringnode.repository.EngineeringNodeRepository;
@@ -14,9 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,15 +25,18 @@ public class NodeStateRepositoryServiceImpl implements NodeStateRepositoryServic
 
     private final NodeStateRecordRepository nodeStateRecordRepository;
     private final EngineeringNodeRepository engineeringNodeRepository;
+    private final CommissioningRecordRepository commissioningRecordRepository;
     private final NodeStateMapper nodeStateMapper;
     private final DeploymentZoneHealthEngineService zoneHealthEngineService;
 
     public NodeStateRepositoryServiceImpl(NodeStateRecordRepository nodeStateRecordRepository,
                                            EngineeringNodeRepository engineeringNodeRepository,
+                                           CommissioningRecordRepository commissioningRecordRepository,
                                            NodeStateMapper nodeStateMapper,
                                            @Lazy DeploymentZoneHealthEngineService zoneHealthEngineService) {
         this.nodeStateRecordRepository = nodeStateRecordRepository;
         this.engineeringNodeRepository = engineeringNodeRepository;
+        this.commissioningRecordRepository = commissioningRecordRepository;
         this.nodeStateMapper = nodeStateMapper;
         this.zoneHealthEngineService = zoneHealthEngineService;
     }
@@ -83,16 +86,72 @@ public class NodeStateRepositoryServiceImpl implements NodeStateRepositoryServic
     @Override
     @Transactional(readOnly = true)
     public NodeStateDTO getLatestNodeState(UUID engineeringNodeId) {
-        return nodeStateRecordRepository.findByEngineeringNodeId(engineeringNodeId)
-                .map(nodeStateMapper::toDto)
-                .orElse(null);
+        Optional<NodeStateRecord> recOpt = nodeStateRecordRepository.findByEngineeringNodeId(engineeringNodeId);
+        if (recOpt.isPresent()) {
+            return nodeStateMapper.toDto(recOpt.get());
+        }
+
+        EngineeringNode node = engineeringNodeRepository.findById(engineeringNodeId).orElse(null);
+        if (node == null) return null;
+
+        // Exclude uncommissioned / non-active nodes from Operations
+        Optional<CommissioningRecord> commOpt = commissioningRecordRepository.findByEngineeringNodeId(engineeringNodeId);
+        if (commOpt.isEmpty() || !"COMMISSIONED".equalsIgnoreCase(commOpt.get().getStatus())) {
+            return null;
+        }
+
+        NodeStateDTO dto = new NodeStateDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setEngineeringNodeId(node.getId());
+        dto.setNodeCode(node.getNodeCode());
+        dto.setNodeNumber(node.getNodeNumber());
+        dto.setCurrentHealth("STABLE");
+        dto.setPreviousHealth("NONE");
+        dto.setObservationCount(0);
+        dto.setEvaluationVersion("v1.0.0");
+        dto.setEvaluationTimestamp(OffsetDateTime.now());
+        dto.setHealthSource("ENGINEERING_BASELINE");
+        return dto;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<NodeStateDTO> getAllNodeStates() {
-        return nodeStateRecordRepository.findAll().stream()
-                .map(nodeStateMapper::toDto)
-                .collect(Collectors.toList());
+        // Query nodes that are commissioned & active
+        List<CommissioningRecord> commissionedRecords = commissioningRecordRepository.findByStatus("COMMISSIONED");
+        Set<UUID> commissionedNodeIds = commissionedRecords.stream()
+                .filter(r -> r.getEngineeringNode() != null)
+                .map(r -> r.getEngineeringNode().getId())
+                .collect(Collectors.toSet());
+
+        Map<UUID, NodeStateRecord> recordMap = nodeStateRecordRepository.findAll().stream()
+                .filter(r -> r.getEngineeringNode() != null)
+                .collect(Collectors.toMap(r -> r.getEngineeringNode().getId(), r -> r, (r1, r2) -> r1));
+
+        if (commissionedNodeIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<EngineeringNode> activeNodes = engineeringNodeRepository.findAllById(commissionedNodeIds);
+
+        return activeNodes.stream().map(node -> {
+            NodeStateRecord rec = recordMap.get(node.getId());
+            if (rec != null) {
+                return nodeStateMapper.toDto(rec);
+            } else {
+                NodeStateDTO dto = new NodeStateDTO();
+                dto.setId(UUID.randomUUID());
+                dto.setEngineeringNodeId(node.getId());
+                dto.setNodeCode(node.getNodeCode());
+                dto.setNodeNumber(node.getNodeNumber());
+                dto.setCurrentHealth("STABLE");
+                dto.setPreviousHealth("NONE");
+                dto.setObservationCount(0);
+                dto.setEvaluationVersion("v1.0.0");
+                dto.setEvaluationTimestamp(OffsetDateTime.now());
+                dto.setHealthSource("ENGINEERING_BASELINE");
+                return dto;
+            }
+        }).collect(Collectors.toList());
     }
 }

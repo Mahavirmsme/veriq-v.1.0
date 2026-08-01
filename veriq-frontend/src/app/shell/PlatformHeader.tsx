@@ -2,10 +2,7 @@ import React from 'react';
 import { useWorkspace } from '../workspace/WorkspaceContext';
 import { useAuth } from '../../context/AuthContext';
 import { WorkspaceType } from '../authentication/RoleResolver';
-import { 
-  Building2, Sliders, ShieldAlert, LogOut, User, 
-  Activity, Layers, Settings, ChevronDown, CheckCircle2 
-} from 'lucide-react';
+import { Sliders, ShieldAlert, LogOut, Settings, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const PlatformHeader: React.FC = () => {
@@ -15,13 +12,15 @@ export const PlatformHeader: React.FC = () => {
 
   const handleWorkspaceChange = (ws: WorkspaceType) => {
     setActiveWorkspace(ws);
-    if (ws === 'administration') navigate('/admin');
-    else if (ws === 'configuration') navigate('/config');
-    else navigate('/ops');
+    if (ws === 'portfolio') navigate('/portfolio');
+    else if (ws === 'administration') navigate('/admin/organizations');
+    else if (ws === 'configuration') navigate('/config/projects');
+    else navigate('/ops/dashboard');
   };
 
   const getWorkspaceIcon = (ws: WorkspaceType) => {
     switch (ws) {
+      case 'portfolio': return <Globe size={15} />;
       case 'administration': return <Settings size={15} />;
       case 'configuration': return <Sliders size={15} />;
       case 'operations': return <ShieldAlert size={15} />;
@@ -30,6 +29,7 @@ export const PlatformHeader: React.FC = () => {
 
   const getWorkspaceLabel = (ws: WorkspaceType) => {
     switch (ws) {
+      case 'portfolio': return 'Portfolio Center';
       case 'administration': return 'Administration Workspace';
       case 'configuration': return 'Project Configuration';
       case 'operations': return 'Operations Command Center';
@@ -50,7 +50,7 @@ export const PlatformHeader: React.FC = () => {
     }}>
       {/* Brand Identity */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => navigate('/ops')}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => navigate('/ops/dashboard')}>
           <div style={{
             width: '28px',
             height: '28px',
@@ -73,53 +73,38 @@ export const PlatformHeader: React.FC = () => {
             </span>
           </div>
         </div>
-
-        {/* Live System Heartbeat */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          background: 'rgba(16, 185, 129, 0.1)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          borderRadius: '12px',
-          padding: '2px 10px',
-          fontSize: '11px',
-          color: '#34D399',
-          fontWeight: 600
-        }}>
-          <CheckCircle2 size={12} color="#34D399" />
-          <span>SYSTEM ONLINE</span>
-        </div>
       </div>
 
-      {/* Workspace Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1E293B', padding: '4px', borderRadius: '6px', border: '1px solid #334155' }}>
-        {allowedWorkspaces.map((ws) => {
-          const isActive = activeWorkspace === ws;
-          return (
-            <button
-              key={ws}
-              onClick={() => handleWorkspaceChange(ws)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 14px',
-                borderRadius: '4px',
-                border: 'none',
-                background: isActive ? '#2563EB' : 'transparent',
-                color: isActive ? '#FFFFFF' : '#94A3B8',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'all 100ms ease'
-              }}
-            >
-              {getWorkspaceIcon(ws)}
-              <span>{getWorkspaceLabel(ws)}</span>
-            </button>
-          );
-        })}
+      {/* Dynamic Workspaces Segmented Control (Generated ONLY from allowedWorkspaces) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1E293B', padding: '4px', borderRadius: '6px', border: '1px solid #334155' }}>
+          {allowedWorkspaces.map((ws) => {
+            const isActive = activeWorkspace === ws;
+            return (
+              <button
+                key={ws}
+                onClick={() => handleWorkspaceChange(ws)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: isActive ? '#2563EB' : 'transparent',
+                  color: isActive ? '#FFFFFF' : '#94A3B8',
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 100ms ease'
+                }}
+              >
+                {getWorkspaceIcon(ws)}
+                <span>{getWorkspaceLabel(ws)}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* User Session & Logout */}
@@ -157,3 +142,5 @@ export const PlatformHeader: React.FC = () => {
     </header>
   );
 };
+
+export default PlatformHeader;

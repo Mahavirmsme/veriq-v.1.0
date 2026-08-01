@@ -1,4 +1,4 @@
 import { createContext } from 'react';
-import { EngineeringContextState } from './EngineeringContextTypes';
+import { SynchronizedContextState } from './EngineeringContextTypes';
 
-export const EngineeringContext = createContext<EngineeringContextState | undefined>(undefined);
+export const EngineeringContext = createContext<SynchronizedContextState | undefined>(undefined);

@@ -7,7 +7,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user_roles")
+@Table(name = "user_roles", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_user_role", columnNames = {"user_id", "role_id"})
+})
 public class UserRole {
 
     @Id
@@ -27,6 +29,12 @@ public class UserRole {
 
     public UserRole() {
         this.id = UUID.randomUUID();
+    }
+
+    public UserRole(User user, Role role) {
+        this.id = UUID.randomUUID();
+        this.user = user;
+        this.role = role;
     }
 
     public UUID getId() {

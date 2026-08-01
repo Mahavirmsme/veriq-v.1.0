@@ -12,7 +12,8 @@ public class RolePermissionDTO {
     private String roleName;
     private UUID permissionId;
     private String permissionCode;
-    private String permissionName;
+    private String category;
+    private String displayName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private OffsetDateTime createdAt;
@@ -67,12 +68,20 @@ public class RolePermissionDTO {
         this.permissionCode = permissionCode;
     }
 
-    public String getPermissionName() {
-        return permissionName;
+    public String getCategory() {
+        return category;
     }
 
-    public void setPermissionName(String permissionName) {
-        this.permissionName = permissionName;
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public OffsetDateTime getCreatedAt() {

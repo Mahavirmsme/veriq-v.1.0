@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, ShieldCheck, FileText, Settings, Key, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Users, ShieldCheck, FileText, Settings } from 'lucide-react';
 
 export const AdministrationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings'>('users');

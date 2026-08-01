@@ -29,6 +29,9 @@ public class SensorPackageResponseDTO {
         private UUID id;
         private String sensorType;
         private Integer quantity;
+        private Integer samplingSeconds;
+        private String warningThreshold;
+        private String criticalThreshold;
         private String measurementParameter;
         private String engineeringPurpose;
         private String remarks;
@@ -57,6 +60,30 @@ public class SensorPackageResponseDTO {
 
         public void setQuantity(Integer quantity) {
             this.quantity = quantity;
+        }
+
+        public Integer getSamplingSeconds() {
+            return samplingSeconds;
+        }
+
+        public void setSamplingSeconds(Integer samplingSeconds) {
+            this.samplingSeconds = samplingSeconds;
+        }
+
+        public String getWarningThreshold() {
+            return warningThreshold;
+        }
+
+        public void setWarningThreshold(String warningThreshold) {
+            this.warningThreshold = warningThreshold;
+        }
+
+        public String getCriticalThreshold() {
+            return criticalThreshold;
+        }
+
+        public void setCriticalThreshold(String criticalThreshold) {
+            this.criticalThreshold = criticalThreshold;
         }
 
         public String getMeasurementParameter() {

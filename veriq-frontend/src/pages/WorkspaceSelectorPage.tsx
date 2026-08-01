@@ -1,13 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Settings, Sliders, ShieldAlert, ArrowRight, User } from 'lucide-react';
+import { Settings, Sliders, ShieldAlert, Globe, User } from 'lucide-react';
 
 export const WorkspaceSelectorPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const workspaces = [
+    {
+      id: 'portfolio',
+      path: '/portfolio',
+      title: 'Portfolio Center',
+      description: 'Executive Infrastructure Overview, Portfolio Health Metrics, and Cross-Project Explorer.',
+      icon: Globe,
+      accent: '#8B5CF6'
+    },
     {
       id: 'administration',
       path: '/admin',
@@ -18,7 +26,7 @@ export const WorkspaceSelectorPage: React.FC = () => {
     },
     {
       id: 'configuration',
-      path: '/config',
+      path: '/config/projects',
       title: 'Project Configuration Workspace',
       description: 'Author Digital Twin hierarchy from Organization down to Sensor Package Strategy & Commissioning.',
       icon: Sliders,
@@ -28,15 +36,16 @@ export const WorkspaceSelectorPage: React.FC = () => {
       id: 'operations',
       path: '/ops',
       title: 'Operations Command Center',
-      description: 'Operate infrastructure, monitor linear embankment ribbon, inspect nodes & execute engineering decisions.',
+      description: 'Operate infrastructure, monitor linear embankment ribbon, inspect nodes & execute operational decisions.',
       icon: ShieldAlert,
       accent: '#059669'
     }
   ];
 
-  const userWorkspaces = user?.allowedWorkspaces || ['administration', 'configuration', 'operations'];
+  const userWorkspaces = user?.allowedWorkspaces || ['portfolio', 'administration', 'configuration', 'operations'];
 
-  const handleSelect = (path: string) => {
+  const handleSelect = (id: string, path: string) => {
+    localStorage.setItem('veriq_active_workspace', id);
     navigate(path, { replace: true });
   };
 
@@ -51,7 +60,7 @@ export const WorkspaceSelectorPage: React.FC = () => {
       padding: '24px',
       fontFamily: 'Inter, sans-serif'
     }}>
-      <div style={{ width: '100%', maxWidth: '840px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ width: '100%', maxWidth: '960px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* User Session Info Card */}
         <div style={{
@@ -98,12 +107,12 @@ export const WorkspaceSelectorPage: React.FC = () => {
             Select Active Platform Workspace
           </h2>
           <p style={{ fontSize: '13px', color: '#CBD5E1', margin: 0 }}>
-            Your account has access to multiple workspaces. Select a workspace to enter.
+            Choose an authorized workspace to launch into its primary operational view
           </p>
         </div>
 
         {/* Workspace Selection Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
           {workspaces.map((ws) => {
             const isAllowed = userWorkspaces.includes(ws.id);
             const Icon = ws.icon;
@@ -111,13 +120,13 @@ export const WorkspaceSelectorPage: React.FC = () => {
             return (
               <div
                 key={ws.id}
-                onClick={() => isAllowed && handleSelect(ws.path)}
+                onClick={() => isAllowed && handleSelect(ws.id, ws.path)}
                 style={{
                   background: '#1E293B',
                   border: `1px solid ${isAllowed ? '#334155' : '#1E293B'}`,
                   borderTop: `4px solid ${ws.accent}`,
                   borderRadius: '8px',
-                  padding: '24px',
+                  padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -141,35 +150,28 @@ export const WorkspaceSelectorPage: React.FC = () => {
                   }}>
                     <Icon size={20} />
                   </div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 8px' }}>
+
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 6px' }}>
                     {ws.title}
                   </h3>
-                  <p style={{ fontSize: '12px', color: '#94A3B8', margin: 0, lineHeight: 1.5 }}>
+
+                  <p style={{ fontSize: '12px', color: '#94A3B8', margin: 0, lineHeight: 1.4 }}>
                     {ws.description}
                   </p>
                 </div>
 
-                <button
-                  disabled={!isAllowed}
-                  style={{
-                    background: isAllowed ? '#2563EB' : '#334155',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '8px 14px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: isAllowed ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    width: '100%',
-                    marginTop: '8px'
-                  }}
-                >
-                  Enter Workspace <ArrowRight size={14} />
-                </button>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #334155',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: isAllowed ? '#60A5FA' : '#64748B'
+                }}>
+                  <span>{isAllowed ? 'Launch Workspace →' : 'Access Restricted'}</span>
+                </div>
               </div>
             );
           })}
@@ -179,3 +181,5 @@ export const WorkspaceSelectorPage: React.FC = () => {
     </div>
   );
 };
+
+export default WorkspaceSelectorPage;

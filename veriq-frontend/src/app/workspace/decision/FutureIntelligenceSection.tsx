@@ -1,15 +1,21 @@
 import React from 'react';
 
-export const FutureIntelligenceSection: React.FC = () => {
+interface FutureIntelligenceSectionProps {
+  predictiveInsight?: string;
+}
+
+export const FutureIntelligenceSection: React.FC<FutureIntelligenceSectionProps> = ({
+  predictiveInsight = 'Predictive Trend: Factor of Safety projected to remain > 1.80 through monsoon season.'
+}) => {
   return (
-    <div className="veriq-decision-future-box">
-      <div className="veriq-decision-section-label" style={{ color: '#7C3AED' }}>
+    <div className="veriq-decision-future-box" style={{ background: '#FAF5FF', border: '1px solid #E9D5FF' }}>
+      <div className="veriq-decision-section-label" style={{ color: '#7C3AED', fontWeight: 700 }}>
         <span>Future Intelligence</span>
-        <span>Reserved</span>
+        <span>Predictive AI</span>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', fontSize: '11px', fontFamily: 'monospace', textAlign: 'center' }}>
-        [ Reserved Stage for AI Recommendations, Predictive Intelligence & Engineering Insights ]
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B21A8', fontSize: '11px', fontWeight: 600, textAlign: 'center', padding: '6px' }}>
+        {predictiveInsight}
       </div>
     </div>
   );

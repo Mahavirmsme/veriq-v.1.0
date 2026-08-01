@@ -6,15 +6,18 @@
   padding: 0;
 }
 
-body {
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  min-height: 100vh;
+  box-sizing: border-box;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
 a {
@@ -36,7 +39,7 @@ input, select, textarea {
   color: inherit;
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars for Vertical Workspace Navigation */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -47,10 +50,10 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
+  background: #CBD5E1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-primary);
+  background: #94A3B8;
 }

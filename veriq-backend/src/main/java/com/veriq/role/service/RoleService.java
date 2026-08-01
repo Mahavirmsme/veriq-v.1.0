@@ -8,10 +8,16 @@ import java.util.List;
 import java.util.UUID;
 
 public interface RoleService {
+
     List<RoleDTO> getAllRoles();
+
     RoleDTO getRoleById(UUID id);
+
     RoleDTO getRoleByCode(String roleCode);
+
     RoleDTO createRole(CreateRolePayloadDTO payload);
+
     RoleDTO updateRole(UUID id, UpdateRolePayloadDTO payload);
+
     void deleteRole(UUID id);
 }

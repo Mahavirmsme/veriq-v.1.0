@@ -11,6 +11,9 @@ public class Role {
     @Id
     private UUID id;
 
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
     @Column(name = "role_code", nullable = false, unique = true)
     private String roleCode;
 
@@ -22,6 +25,9 @@ public class Role {
 
     @Column(name = "is_system_role", nullable = false)
     private boolean systemRole = false;
+
+    @Column(name = "status", nullable = false)
+    private String status = "ACTIVE";
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -39,6 +45,14 @@ public class Role {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(UUID organizationId) {
+        this.organizationId = organizationId;
     }
 
     public String getRoleCode() {
@@ -71,6 +85,14 @@ public class Role {
 
     public void setSystemRole(boolean systemRole) {
         this.systemRole = systemRole;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public OffsetDateTime getCreatedAt() {

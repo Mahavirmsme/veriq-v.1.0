@@ -1,17 +1,23 @@
 package com.veriq.user.service;
 
+import com.veriq.common.context.TenantContextResolver;
 import com.veriq.common.exception.BusinessRuleViolationException;
 import com.veriq.common.exception.ResourceNotFoundException;
+import com.veriq.role.entity.Role;
+import com.veriq.role.repository.RoleRepository;
 import com.veriq.user.dto.CreateUserPayloadDTO;
 import com.veriq.user.dto.UpdateUserPayloadDTO;
 import com.veriq.user.dto.UserDTO;
 import com.veriq.user.entity.User;
 import com.veriq.user.mapper.UserMapper;
 import com.veriq.user.repository.UserRepository;
+import com.veriq.userrole.entity.UserRole;
+import com.veriq.userrole.repository.UserRoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -20,18 +26,33 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final RoleRepository roleRepository;
     private final UserMapper userMapper;
+    private final TenantContextResolver tenantContextResolver;
 
-    public UserServiceImpl(UserRepository userRepository, UserMapper userMapper) {
+    public UserServiceImpl(UserRepository userRepository,
+                           UserRoleRepository userRoleRepository,
+                           RoleRepository roleRepository,
+                           UserMapper userMapper,
+                           TenantContextResolver tenantContextResolver) {
         this.userRepository = userRepository;
+        this.userRoleRepository = userRoleRepository;
+        this.roleRepository = roleRepository;
         this.userMapper = userMapper;
+        this.tenantContextResolver = tenantContextResolver;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toDto)
+        UUID sessionOrgId = resolveSessionOrganizationId();
+        List<User> users = (sessionOrgId != null) 
+                ? userRepository.findByOrganizationId(sessionOrgId)
+                : userRepository.findAll();
+
+        return users.stream()
+                .map(this::enrichUserDTO)
                 .collect(Collectors.toList());
     }
 
@@ -40,7 +61,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-        return userMapper.toDto(user);
+        return enrichUserDTO(user);
     }
 
     @Override
@@ -48,7 +69,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserByEmail(String email) {
         User user = userRepository.findByEmail(email.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-        return userMapper.toDto(user);
+        return enrichUserDTO(user);
     }
 
     @Override
@@ -58,8 +79,16 @@ public class UserServiceImpl implements UserService {
             throw new BusinessRuleViolationException("USER_EMAIL_EXISTS", "A user with email '" + email + "' already exists.");
         }
         User user = userMapper.toEntity(payload);
+
+        // Resolve organization_id strictly server-side from TenantContextResolver contract
+        UUID sessionOrgId = resolveSessionOrganizationId();
+        user.setOrganizationId(sessionOrgId);
+
         User saved = userRepository.save(user);
-        return userMapper.toDto(saved);
+
+        saveUserRoles(saved, payload.getAssignedRoles());
+
+        return enrichUserDTO(saved);
     }
 
     @Override
@@ -74,9 +103,22 @@ public class UserServiceImpl implements UserService {
         if (payload.getStatus() != null) {
             user.setStatus(payload.getStatus());
         }
+        if (payload.getDepartmentId() != null) {
+            user.setDepartmentId(payload.getDepartmentId());
+        }
+        if (payload.getDesignationId() != null) {
+            user.setDesignationId(payload.getDesignationId());
+        }
 
         User saved = userRepository.save(user);
-        return userMapper.toDto(saved);
+
+        if (payload.getAssignedRoles() != null) {
+            List<UserRole> existingRoles = userRoleRepository.findByUserId(id);
+            userRoleRepository.deleteAll(existingRoles);
+            saveUserRoles(saved, payload.getAssignedRoles());
+        }
+
+        return enrichUserDTO(saved);
     }
 
     @Override
@@ -84,6 +126,61 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
+        List<UserRole> roles = userRoleRepository.findByUserId(id);
+        userRoleRepository.deleteAll(roles);
+
         userRepository.delete(user);
+    }
+
+    private UUID resolveSessionOrganizationId() {
+        return tenantContextResolver.resolveCurrentOrganizationId().orElse(null);
+    }
+
+    private void saveUserRoles(User user, List<String> roleIdentifiers) {
+        if (roleIdentifiers == null || roleIdentifiers.isEmpty()) {
+            return;
+        }
+
+        for (String roleIdent : roleIdentifiers) {
+            if (roleIdent == null || roleIdent.trim().isEmpty()) {
+                continue;
+            }
+            Optional<Role> roleOpt = findRoleByIdentifier(roleIdent.trim());
+            if (roleOpt.isPresent()) {
+                Role role = roleOpt.get();
+                if (!userRoleRepository.existsByUserIdAndRoleId(user.getId(), role.getId())) {
+                    UserRole userRole = new UserRole();
+                    userRole.setUser(user);
+                    userRole.setRole(role);
+                    userRoleRepository.save(userRole);
+                }
+            }
+        }
+    }
+
+    private Optional<Role> findRoleByIdentifier(String identifier) {
+        try {
+            UUID uuid = UUID.fromString(identifier);
+            Optional<Role> byId = roleRepository.findById(uuid);
+            if (byId.isPresent()) {
+                return byId;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Search by roleCode
+        }
+        return roleRepository.findByRoleCode(identifier);
+    }
+
+    private UserDTO enrichUserDTO(User user) {
+        UserDTO dto = userMapper.toDto(user);
+        List<UserRole> userRoles = userRoleRepository.findByUserId(user.getId());
+        List<String> roleCodes = userRoles.stream()
+                .map(ur -> ur.getRole().getRoleCode())
+                .collect(Collectors.toList());
+        dto.setAssignedRoles(roleCodes);
+        if (!roleCodes.isEmpty()) {
+            dto.setDefaultRole(roleCodes.get(0));
+        }
+        return dto;
     }
 }

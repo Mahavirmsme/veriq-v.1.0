@@ -21,7 +21,8 @@ public class RolePermissionMapper {
         if (entity.getPermission() != null) {
             dto.setPermissionId(entity.getPermission().getId());
             dto.setPermissionCode(entity.getPermission().getPermissionCode());
-            dto.setPermissionName(entity.getPermission().getPermissionName());
+            dto.setCategory(entity.getPermission().getCategory());
+            dto.setDisplayName(entity.getPermission().getDisplayName());
         }
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;

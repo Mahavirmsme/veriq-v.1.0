@@ -12,6 +12,15 @@ public class User {
     @Column(name = "user_id")
     private UUID id;
 
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
+    @Column(name = "department_id")
+    private UUID departmentId;
+
+    @Column(name = "designation_id")
+    private UUID designationId;
+
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
@@ -43,6 +52,30 @@ public class User {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(UUID organizationId) {
+        this.organizationId = organizationId;
+    }
+
+    public UUID getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(UUID departmentId) {
+        this.departmentId = departmentId;
+    }
+
+    public UUID getDesignationId() {
+        return designationId;
+    }
+
+    public void setDesignationId(UUID designationId) {
+        this.designationId = designationId;
     }
 
     public String getFirstName() {

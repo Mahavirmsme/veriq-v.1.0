@@ -13,6 +13,8 @@ public class UserRoleDTO {
     private UUID roleId;
     private String roleCode;
     private String roleName;
+    private boolean isSystemRole;
+    private UUID organizationId;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private OffsetDateTime createdAt;
@@ -73,6 +75,22 @@ public class UserRoleDTO {
 
     public void setRoleName(String roleName) {
         this.roleName = roleName;
+    }
+
+    public boolean isSystemRole() {
+        return isSystemRole;
+    }
+
+    public void setSystemRole(boolean systemRole) {
+        isSystemRole = systemRole;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(UUID organizationId) {
+        this.organizationId = organizationId;
     }
 
     public OffsetDateTime getCreatedAt() {

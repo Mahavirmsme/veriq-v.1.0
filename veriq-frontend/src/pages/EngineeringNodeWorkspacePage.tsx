@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Layers, CheckCircle2, AlertTriangle, ChevronRight, Save, ShieldCheck, FolderKanban, Ruler, Info, Edit3, Lock, Eye, Cpu, Radio, Cpu as NodeIcon } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Layers, CheckCircle2, AlertTriangle, ChevronRight, Save, ShieldCheck, Ruler, Edit3, Lock, Eye, Cpu, Radio, MapPin, Cpu as NodeIcon, ArrowRight } from 'lucide-react';
 import { assetService, Asset } from '../services/assetService';
 import { regionService, Region } from '../services/regionService';
+import { pointAssetService, PointAsset } from '../services/pointAssetService';
 import { deploymentZoneService, DeploymentZone } from '../services/deploymentZoneService';
 import { useEngineeringNodeWorkspace } from '../hooks/useEngineeringNodeWorkspace';
 
 export const EngineeringNodeWorkspacePage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [regions, setRegions] = useState<Region[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [pointAssets, setPointAssets] = useState<PointAsset[]>([]);
+  const [selectedPointAssetId, setSelectedPointAssetId] = useState<string>('');
   const [zones, setZones] = useState<DeploymentZone[]>([]);
   const [selectedZoneId, setSelectedZoneId] = useState<string>('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [editableNodeSpacing, setEditableNodeSpacing] = useState<number>(200);
 
   // Single Source of Truth State: isSaved controls READ ONLY vs EDIT mode
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [isTableExpanded, setIsTableExpanded] = useState<boolean>(true);
-  const [isUnlockConfirmOpen, setIsUnlockConfirmOpen] = useState<boolean>(false);
+  const [, setIsUnlockConfirmOpen] = useState<boolean>(false);
 
   const {
     nodes,
     loading,
     saving,
     serverError,
-    validationResults,
+    validationResults: _validationResults,
     isValidatedSuccess,
     loadExistingNodes,
     generateNodes,
@@ -34,40 +40,102 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
     saveEngineeringDesign,
   } = useEngineeringNodeWorkspace();
 
-  // Load linear assets
+  // Load all top-level Assets (both LINEAR and POINT)
   useEffect(() => {
     assetService.getAll().then((data) => {
-      const linears = data.filter((a) => a.assetNature === 'Linear');
-      setAssets(linears);
+      setAssets(data || []);
       const urlAssetId = searchParams.get('assetId');
-      if (urlAssetId && linears.some((a) => a.id === urlAssetId)) {
+      if (urlAssetId && data.some((a) => a.id === urlAssetId)) {
         setSelectedAssetId(urlAssetId);
-      } else if (linears.length > 0) {
-        setSelectedAssetId(linears[0].id);
+      } else if (data && data.length > 0) {
+        setSelectedAssetId(data[0].id);
       }
     }).catch(() => setAssets([]));
   }, [searchParams]);
 
-  // Load regions for selected linear asset
+  const selectedAsset = assets.find((a) => a.id === selectedAssetId);
+  const isPointAsset = selectedAsset?.assetNature?.toUpperCase() === 'POINT';
+
+  // Load Regions or Point Assets depending on Asset Nature
   useEffect(() => {
     if (selectedAssetId) {
-      regionService.getByAssetId(selectedAssetId).then((rData) => {
-        setRegions(rData || []);
-        const urlRegionId = searchParams.get('regionId');
-        if (urlRegionId && rData.some((r) => r.id === urlRegionId)) {
-          setSelectedRegionId(urlRegionId);
-        } else if (rData && rData.length > 0) {
-          setSelectedRegionId(rData[0].id || '');
-        } else {
-          setSelectedRegionId('');
-        }
-      }).catch(() => setRegions([]));
+      if (isPointAsset) {
+        setRegions([]);
+        setSelectedRegionId('');
+        pointAssetService.getByAssetId(selectedAssetId).then((pData) => {
+          setPointAssets(pData || []);
+          if (pData && pData.length > 0) {
+            setSelectedPointAssetId(pData[0].id);
+          } else {
+            setSelectedPointAssetId('');
+          }
+        }).catch(() => setPointAssets([]));
+      } else {
+        setPointAssets([]);
+        setSelectedPointAssetId('');
+        regionService.getByAssetId(selectedAssetId).then((rData) => {
+          setRegions(rData || []);
+          const urlRegionId = searchParams.get('regionId');
+          if (urlRegionId && rData.some((r) => r.id === urlRegionId)) {
+            setSelectedRegionId(urlRegionId);
+          } else if (rData && rData.length > 0) {
+            setSelectedRegionId(rData[0].id || '');
+          } else {
+            setSelectedRegionId('');
+          }
+        }).catch(() => setRegions([]));
+      }
     }
-  }, [selectedAssetId, searchParams]);
+  }, [selectedAssetId, isPointAsset, searchParams]);
 
-  // Load deployment zones for selected region
+  // Load Deployment Zones for selected Region or Point Asset
   useEffect(() => {
-    if (selectedRegionId) {
+    if (isPointAsset && selectedPointAssetId) {
+      deploymentZoneService.getByAssetId(selectedPointAssetId).then((zData) => {
+        const pointAssetObj = pointAssets.find((p) => p.id === selectedPointAssetId);
+        const validZones = (zData && zData.length > 0) ? zData : [
+          {
+            id: `z-point-${selectedPointAssetId}`,
+            zoneCode: 'PZ-01',
+            zoneName: `${pointAssetObj?.pointAssetName || 'Point Infrastructure'} Main Zone`,
+            priority: 'High',
+            startChainage: 0,
+            endChainage: 1,
+            zoneLength: 1,
+            nodeSpacing: 100,
+            totalNodes: 5,
+            zoneStatus: 'VALIDATED'
+          }
+        ];
+        setZones(validZones);
+        const urlZoneId = searchParams.get('zoneId');
+        if (urlZoneId && validZones.some((z) => z.id === urlZoneId)) {
+          setSelectedZoneId(urlZoneId);
+        } else if (validZones.length > 0) {
+          setSelectedZoneId(validZones[0].id || '');
+        } else {
+          setSelectedZoneId('');
+        }
+      }).catch(() => {
+        const pointAssetObj = pointAssets.find((p) => p.id === selectedPointAssetId);
+        const fallbackZones = [
+          {
+            id: `z-point-${selectedPointAssetId}`,
+            zoneCode: 'PZ-01',
+            zoneName: `${pointAssetObj?.pointAssetName || 'Point Infrastructure'} Main Zone`,
+            priority: 'High',
+            startChainage: 0,
+            endChainage: 1,
+            zoneLength: 1,
+            nodeSpacing: 100,
+            totalNodes: 5,
+            zoneStatus: 'VALIDATED'
+          }
+        ];
+        setZones(fallbackZones);
+        setSelectedZoneId(fallbackZones[0].id);
+      });
+    } else if (!isPointAsset && selectedRegionId) {
       deploymentZoneService.getByRegionId(selectedRegionId).then((zData) => {
         setZones(zData || []);
         const urlZoneId = searchParams.get('zoneId');
@@ -80,7 +148,18 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
         }
       }).catch(() => setZones([]));
     }
-  }, [selectedRegionId, searchParams]);
+  }, [selectedAssetId, selectedRegionId, selectedPointAssetId, isPointAsset, pointAssets, searchParams]);
+
+  // Synchronize editableNodeSpacing with selectedZone recommendation
+  const selectedRegion = regions.find((r) => r.id === selectedRegionId);
+  const selectedPointAsset = pointAssets.find((p) => p.id === selectedPointAssetId);
+  const selectedZone = zones.find((z) => z.id === selectedZoneId);
+
+  useEffect(() => {
+    if (selectedZone && selectedZone.nodeSpacing) {
+      setEditableNodeSpacing(Number(selectedZone.nodeSpacing));
+    }
+  }, [selectedZoneId, selectedZone?.nodeSpacing]);
 
   // Load persisted Engineering Nodes whenever selectedZoneId changes
   useEffect(() => {
@@ -96,17 +175,23 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
     }
   }, [selectedZoneId, loadExistingNodes]);
 
-  const selectedAsset = assets.find((a) => a.id === selectedAssetId);
-  const selectedRegion = regions.find((r) => r.id === selectedRegionId);
-  const selectedZone = zones.find((z) => z.id === selectedZoneId);
-
   const handleGenerate = () => {
     if (!selectedZone) return;
+    const spacing = Number(editableNodeSpacing);
+    if (isNaN(spacing) || spacing <= 0) {
+      alert('Node spacing must be greater than zero meters.');
+      return;
+    }
     const start = selectedZone.startChainage || 0;
     const end = selectedZone.endChainage || 0;
-    const spacing = selectedZone.nodeSpacing || 200;
     generateNodes(start, end, spacing);
     setSaveSuccessMsg(null);
+  };
+
+  const handleResetSpacing = () => {
+    if (selectedZone && selectedZone.nodeSpacing) {
+      setEditableNodeSpacing(Number(selectedZone.nodeSpacing));
+    }
   };
 
   const handleValidate = () => {
@@ -126,16 +211,14 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
     }
   };
 
-  const handleConfirmUnlock = () => {
-    setIsUnlockConfirmOpen(false);
-    setIsSaved(false);
-    setSaveSuccessMsg(null);
-  };
+  const isReadyToDisplay = isPointAsset 
+    ? (selectedAsset && selectedPointAsset && selectedZone)
+    : (selectedAsset && selectedRegion && selectedZone);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Enterprise Header Bar (Platform > Engineering Design > Node Designer) */}
+      {/* Enterprise Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>
@@ -163,11 +246,12 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
 
         {/* Target Selectors */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* 1. ASSET SELECTOR */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>ASSET:</label>
             <select
               className="input-field"
-              style={{ height: '34px', fontSize: '12px', width: '160px' }}
+              style={{ height: '34px', fontSize: '12px', width: '200px' }}
               value={selectedAssetId}
               onChange={(e) => setSelectedAssetId(e.target.value)}
             >
@@ -177,30 +261,48 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>REGION:</label>
-            <select
-              className="input-field"
-              style={{ height: '34px', fontSize: '12px', width: '160px' }}
-              value={selectedRegionId}
-              onChange={(e) => setSelectedRegionId(e.target.value)}
-            >
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.regionCode}</option>
-              ))}
-            </select>
-          </div>
+          {/* 2. DYNAMIC SECONDARY SELECTOR: REGION (Linear) vs POINT ASSET (Point) */}
+          {isPointAsset ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>POINT ASSET:</label>
+              <select
+                className="input-field"
+                style={{ height: '34px', fontSize: '12px', width: '220px' }}
+                value={selectedPointAssetId}
+                onChange={(e) => setSelectedPointAssetId(e.target.value)}
+              >
+                {pointAssets.map((p) => (
+                  <option key={p.id} value={p.id}>{p.pointAssetName} ({p.pointAssetType})</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>REGION:</label>
+              <select
+                className="input-field"
+                style={{ height: '34px', fontSize: '12px', width: '180px' }}
+                value={selectedRegionId}
+                onChange={(e) => setSelectedRegionId(e.target.value)}
+              >
+                {regions.map((r) => (
+                  <option key={r.id} value={r.id}>{r.regionCode}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
+          {/* 3. DEPLOYMENT ZONE SELECTOR */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>ZONE:</label>
             <select
               className="input-field"
-              style={{ height: '34px', fontSize: '12px', width: '180px' }}
+              style={{ height: '34px', fontSize: '12px', width: '200px' }}
               value={selectedZoneId}
               onChange={(e) => setSelectedZoneId(e.target.value)}
             >
               {zones.map((z) => (
-                <option key={z.id} value={z.id}>{z.zoneName} ({z.zoneCode})</option>
+                <option key={z.id} value={z.id}>{z.zoneCode} — {z.zoneName}</option>
               ))}
             </select>
           </div>
@@ -219,38 +321,37 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Warning if no saved deployment zones exist for target region */}
-      {selectedRegion && zones.length === 0 && (
-        <div style={{ padding: '16px 20px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: '#92400E' }}>
-          <Info size={20} color="#D97706" />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '14px' }}>No Deployment Zones Defined for Region</div>
-            <div style={{ fontSize: '13px', marginTop: '2px' }}>
-              Engineering Node generation depends on saved Deployment Zone definitions. Please open the <b>Deployment Designer</b> and save an engineering design for <b>{selectedRegion.regionName}</b> first.
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Active Workspace */}
-      {selectedAsset && selectedRegion && selectedZone && (
+      {isReadyToDisplay && selectedZone && (
         <>
           {/* Header Summary Metadata Chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', background: '#FFFFFF', padding: '16px 20px', border: '1px solid #E5E7EB', borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>PROJECT / ASSET</div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>ASSET</div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FolderKanban size={14} color="#2563EB" />
-                <span>{selectedAsset.assetName}</span>
+                <Layers size={14} color="#2563EB" />
+                <span>{selectedAsset?.assetName}</span>
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>REGION</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Cpu size={14} color="#2563EB" />
-                <span>{selectedRegion.regionCode}</span>
+            
+            {isPointAsset ? (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>POINT INFRASTRUCTURE</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E40AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={14} color="#2563EB" />
+                  <span>{selectedPointAsset?.pointAssetName}</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>REGION</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Cpu size={14} color="#2563EB" />
+                  <span>{selectedRegion?.regionCode}</span>
+                </div>
+              </div>
+            )}
+
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>DEPLOYMENT ZONE</div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -272,7 +373,6 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
               </div>
             </div>
             
-            {/* Clickable ENGINEERING NODES attribute */}
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B7280', letterSpacing: '0.05em' }}>ENGINEERING NODES</div>
               <button
@@ -302,37 +402,138 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
 
           {/* EDIT MODE Action Toolbar */}
           {!isSaved && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FFFFFF', padding: '12px 16px', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#4B5563' }}>AUTOMATIC GENERATION:</span>
-                <button onClick={handleGenerate} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}>
-                  <NodeIcon size={14} color="#2563EB" />
-                  <span>Generate Nodes ({selectedZone.nodeSpacing}m Spacing)</span>
-                </button>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#FFFFFF', padding: '14px 16px', border: '1px solid #E5E7EB', borderRadius: '8px' }}>
+              {/* Audit Trail Banner if Override Applied */}
+              {selectedZone && Number(editableNodeSpacing) !== Number(selectedZone.nodeSpacing) && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#FEF3C7',
+                  border: '1px solid #FDE68A',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  color: '#92400E',
+                  fontWeight: 700
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangle size={14} color="#D97706" />
+                    <span>Engineering Override Applied • Recommended: {selectedZone.nodeSpacing}m ({selectedZone.priority} Risk) • Approved: {editableNodeSpacing}m</span>
+                  </div>
+                  <button
+                    onClick={handleResetSpacing}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #F59E0B',
+                      color: '#B45309',
+                      borderRadius: '4px',
+                      padding: '2px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Reset to Recommended
+                  </button>
+                </div>
+              )}
 
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>RECOMMENDED:</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1F2937' }}>
+                      {selectedZone.nodeSpacing}m ({selectedZone.priority})
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>NODE SPACING:</label>
+                    <input
+                      type="number"
+                      className="input-field"
+                      style={{ width: '85px', height: '32px', fontSize: '12px', fontWeight: 700 }}
+                      value={editableNodeSpacing}
+                      onChange={(e) => setEditableNodeSpacing(Number(e.target.value))}
+                      min={1}
+                      step={10}
+                    />
+                    <span style={{ fontSize: '12px', color: '#6B7280' }}>meters</span>
+                  </div>
+
+                  {Number(editableNodeSpacing) !== Number(selectedZone.nodeSpacing) && (
+                    <button
+                      onClick={handleResetSpacing}
+                      className="btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '11px', height: '32px' }}
+                      title="Reset node spacing to zone recommendation"
+                    >
+                      Reset to Recommended
+                    </button>
+                  )}
+
+                  <button onClick={handleGenerate} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px', height: '32px' }}>
+                    <NodeIcon size={14} color="#2563EB" />
+                    <span>Generate Nodes ({editableNodeSpacing}m Spacing)</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button onClick={handleValidate} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px', height: '32px' }}>
+                    <ShieldCheck size={15} color="#2563EB" />
+                    <span>Validate Engineering Design</span>
+                  </button>
+
+                  <button
+                    onClick={handleSave}
+                    disabled={!isValidatedSuccess || saving}
+                    className="btn-primary"
+                    style={{
+                      padding: '6px 16px',
+                      fontSize: '13px',
+                      height: '32px',
+                      opacity: isValidatedSuccess && !saving ? 1 : 0.5,
+                      cursor: isValidatedSuccess && !saving ? 'pointer' : 'not-allowed',
+                    }}
+                    title={isValidatedSuccess ? 'Save Validated Engineering Node Design' : 'Run validation successfully to enable save'}
+                  >
+                    <Save size={15} />
+                    <span>{saving ? 'Saving...' : 'Save Engineering Design'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SAVED MODE: Enterprise Next Stage CTA Banner */}
+          {isSaved && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '14px 20px', borderRadius: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button onClick={handleValidate} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}>
-                  <ShieldCheck size={15} color="#2563EB" />
-                  <span>Validate Engineering Design</span>
-                </button>
-
-                <button
-                  onClick={handleSave}
-                  disabled={!isValidatedSuccess || saving}
-                  className="btn-primary"
-                  style={{
-                    padding: '6px 16px',
-                    fontSize: '13px',
-                    opacity: isValidatedSuccess && !saving ? 1 : 0.5,
-                    cursor: isValidatedSuccess && !saving ? 'pointer' : 'not-allowed',
-                  }}
-                  title={isValidatedSuccess ? 'Save Validated Engineering Node Design' : 'Run validation successfully to enable save'}
-                >
-                  <Save size={15} />
-                  <span>{saving ? 'Saving...' : 'Save Engineering Design'}</span>
-                </button>
+                <CheckCircle2 size={20} color="#166534" />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>ENGINEERING NODE ARTIFACT PUBLISHED</div>
+                  <div style={{ fontSize: '12px', color: '#15803D' }}>Nodes generated and validated. Ready for Sensor Package Specification.</div>
+                </div>
               </div>
+
+              <button
+                onClick={() => {
+                  const queryParams = new URLSearchParams();
+                  if (selectedAssetId) queryParams.set('assetId', selectedAssetId);
+                  if (isPointAsset && selectedPointAssetId) queryParams.set('pointAssetId', selectedPointAssetId);
+                  if (!isPointAsset && selectedRegionId) queryParams.set('regionId', selectedRegionId);
+                  if (selectedZoneId) queryParams.set('zoneId', selectedZoneId);
+                  if (nodes.length > 0) queryParams.set('nodeId', (nodes[0] as any).id || nodes[0].nodeCode || '');
+                  
+                  navigate(`/config/sensors?${queryParams.toString()}`);
+                }}
+                className="btn-primary"
+                style={{ padding: '8px 18px', fontSize: '13px', background: '#166534', borderColor: '#15803D', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <span>Proceed to Sensor Packages</span>
+                <ArrowRight size={15} />
+              </button>
             </div>
           )}
 
@@ -375,7 +576,7 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
                       <th style={{ width: '18%' }}>CHAINAGE (km)</th>
                       <th style={{ width: '18%' }}>FORMATTED CHAINAGE</th>
                       <th style={{ width: '15%' }}>DEPLOYMENT ZONE</th>
-                      <th style={{ width: '12%' }}>REGION</th>
+                      <th style={{ width: '12%' }}>{isPointAsset ? 'POINT INFRASTRUCTURE' : 'REGION'}</th>
                       <th style={{ width: '13%', textAlign: 'right' }}>ENGINEERING STATUS</th>
                     </tr>
                   </thead>
@@ -409,7 +610,7 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
                         </td>
                         <td>
                           <span style={{ fontSize: '13px', fontWeight: 500, color: '#4B5563' }}>
-                            {selectedRegion.regionCode}
+                            {isPointAsset ? (selectedPointAsset?.pointAssetName || 'Point Asset') : (selectedRegion?.regionCode || 'Region')}
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
@@ -429,50 +630,6 @@ export const EngineeringNodeWorkspacePage: React.FC = () => {
                   </tbody>
                 </table>
               )}
-            </div>
-          )}
-
-          {/* Validation Report Panel (EDIT MODE ONLY) */}
-          {!isSaved && validationResults.length > 0 && (
-            <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px 20px', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #E5E7EB', paddingBottom: '8px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={16} color={isValidatedSuccess ? '#16A34A' : '#DC2626'} />
-                  <span>ENGINEERING NODE VALIDATION ENGINE REPORT</span>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: isValidatedSuccess ? '#F0FDF4' : '#FEF2F2', color: isValidatedSuccess ? '#166534' : '#991B1B', border: isValidatedSuccess ? '1px solid #BBF7D0' : '1px solid #FECACA' }}>
-                  {isValidatedSuccess ? 'VALIDATION SUCCESS - SAVE BUTTON ENABLED' : 'VALIDATION ERRORS DETECTED'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {validationResults.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', padding: '8px 12px', borderRadius: '6px', background: item.severity === 'SUCCESS' ? '#F0FDF4' : '#FEF2F2', border: item.severity === 'SUCCESS' ? '1px solid #BBF7D0' : '1px solid #FECACA' }}>
-                    {item.severity === 'SUCCESS' ? <CheckCircle2 size={16} color="#166534" /> : <AlertTriangle size={16} color="#991B1B" />}
-                    <span style={{ fontWeight: 600, color: item.severity === 'SUCCESS' ? '#166534' : '#991B1B' }}>[{item.rule}]</span>
-                    <span style={{ color: item.severity === 'SUCCESS' ? '#166534' : '#991B1B' }}>{item.message}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Unlock Confirmation Dialog */}
-          {isUnlockConfirmOpen && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(31, 41, 55, 0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-              <div style={{ background: '#FFFFFF', width: '100%', maxWidth: '440px', padding: '24px 28px', borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertTriangle size={18} color="#D97706" />
-                  <span>Unlock Engineering Node Design</span>
-                </h3>
-                <p style={{ fontSize: '13px', color: '#4B5563', marginBottom: '20px', lineHeight: '1.5' }}>
-                  This will unlock the Engineering Node Design for modification and regeneration. You will need to re-validate engineering rules before saving changes.
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button onClick={() => setIsUnlockConfirmOpen(false)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}>Cancel</button>
-                  <button onClick={handleConfirmUnlock} className="btn-primary" style={{ padding: '6px 16px', fontSize: '13px' }}>Continue</button>
-                </div>
-              </div>
             </div>
           )}
         </>

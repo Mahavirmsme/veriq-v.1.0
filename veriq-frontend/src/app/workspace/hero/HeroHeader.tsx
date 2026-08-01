@@ -1,23 +1,47 @@
 import React from 'react';
-import { Layers } from 'lucide-react';
+import { Layers, Building, Folder, MapPin, Cpu, Radio } from 'lucide-react';
 
 interface HeroHeaderProps {
   objectType?: string;
   objectName?: string;
   parentObject?: string;
+  objectId?: string;
+  currentStatus?: string;
+  lastUpdated?: string;
 }
 
 export const HeroHeader: React.FC<HeroHeaderProps> = ({
   objectType = 'ASSET',
   objectName = 'Kosi Left Flood Embankment',
-  parentObject = 'Kosi Embankment Protection Project'
+  parentObject = 'Kosi Embankment Protection Project',
+  objectId = 'asset-kosi-left-embankment',
+  currentStatus = 'STABLE',
+  lastUpdated = new Date().toISOString().replace('T', ' ').substring(0, 19)
 }) => {
+  const getHeaderIcon = () => {
+    switch (objectType?.toUpperCase()) {
+      case 'ORGANIZATION':
+        return <Building size={22} />;
+      case 'PROJECT':
+        return <Folder size={22} />;
+      case 'REGION':
+        return <MapPin size={22} />;
+      case 'DEPLOYMENT_ZONE':
+        return <Cpu size={22} />;
+      case 'NODE':
+        return <Radio size={22} />;
+      case 'ASSET':
+      default:
+        return <Layers size={22} />;
+    }
+  };
+
   return (
     <div className="veriq-hero-section" style={{ background: '#FFFFFF', borderColor: '#E2E8F0' }}>
       <div className="veriq-hero-section-title">
         <span style={{ color: '#475569', fontWeight: 700 }}>Engineering Object Identity</span>
-        <span style={{ fontSize: '10px', color: '#2563EB', fontFamily: 'monospace', fontWeight: 600 }}>
-          [ Object Identity Placeholder ]
+        <span style={{ fontSize: '11px', color: '#2563EB', fontFamily: 'monospace', fontWeight: 700 }}>
+          ID: {objectId}
         </span>
       </div>
 
@@ -35,7 +59,7 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
             justifyContent: 'center',
             color: '#2563EB'
           }}>
-            <Layers size={22} />
+            {getHeaderIcon()}
           </div>
 
           <div>
@@ -56,10 +80,10 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({
         {/* Right: Current Status & Last Updated */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{ fontSize: '11px', fontWeight: 600, color: '#475569', fontFamily: 'monospace' }}>
-            Status: <span style={{ color: '#2563EB' }}>[ Current Status Placeholder ]</span>
+            Status: <span style={{ color: '#059669', fontWeight: 800 }}>{currentStatus}</span>
           </div>
-          <div style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'monospace' }}>
-            Last Updated: [ Timestamp Placeholder ]
+          <div style={{ fontSize: '11px', color: '#64748B', fontFamily: 'monospace' }}>
+            Last Updated: {lastUpdated}
           </div>
         </div>
       </div>

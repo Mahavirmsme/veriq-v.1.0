@@ -12,6 +12,8 @@ public class CreateRolePayloadDTO {
 
     private String roleDescription;
 
+    private String status = "ACTIVE";
+
     public CreateRolePayloadDTO() {}
 
     public String getRoleCode() {
@@ -36,5 +38,13 @@ public class CreateRolePayloadDTO {
 
     public void setRoleDescription(String roleDescription) {
         this.roleDescription = roleDescription;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

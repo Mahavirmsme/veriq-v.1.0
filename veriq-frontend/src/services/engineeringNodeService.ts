@@ -38,8 +38,11 @@ export interface ApiResponse<T> {
 }
 
 export const engineeringNodeService = {
-  getByDeploymentZoneId: async (deploymentZoneId: string): Promise<EngineeringNode[]> => {
-    const response = await apiClient.get<ApiResponse<EngineeringNode[]>>(`/engineering-nodes/zone/${deploymentZoneId}`);
+  getByDeploymentZoneId: async (deploymentZoneId: string, commissionedOnly: boolean = false): Promise<EngineeringNode[]> => {
+    const url = commissionedOnly 
+      ? `/engineering-nodes/zone/${deploymentZoneId}?commissionedOnly=true`
+      : `/engineering-nodes/zone/${deploymentZoneId}`;
+    const response = await apiClient.get<ApiResponse<EngineeringNode[]>>(url);
     return response.data.data;
   },
 

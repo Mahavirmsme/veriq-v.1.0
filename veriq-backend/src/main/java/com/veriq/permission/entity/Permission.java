@@ -9,17 +9,20 @@ import java.util.UUID;
 public class Permission {
 
     @Id
-    @Column(name = "permission_id")
+    @Column(name = "id")
     private UUID id;
 
     @Column(name = "permission_code", nullable = false, unique = true)
     private String permissionCode;
 
-    @Column(name = "permission_name", nullable = false)
-    private String permissionName;
+    @Column(name = "category", nullable = false)
+    private String category;
 
-    @Column(name = "permission_description")
-    private String permissionDescription;
+    @Column(name = "display_name", nullable = false)
+    private String displayName;
+
+    @Column(name = "description")
+    private String description;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -47,20 +50,28 @@ public class Permission {
         this.permissionCode = permissionCode;
     }
 
-    public String getPermissionName() {
-        return permissionName;
+    public String getCategory() {
+        return category;
     }
 
-    public void setPermissionName(String permissionName) {
-        this.permissionName = permissionName;
+    public void setCategory(String category) {
+        this.category = category;
     }
 
-    public String getPermissionDescription() {
-        return permissionDescription;
+    public String getDisplayName() {
+        return displayName;
     }
 
-    public void setPermissionDescription(String permissionDescription) {
-        this.permissionDescription = permissionDescription;
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public OffsetDateTime getCreatedAt() {

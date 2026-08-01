@@ -36,6 +36,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(com.veriq.authorization.exception.ForbiddenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(com.veriq.authorization.exception.ForbiddenException ex) {
+        log.warn("Authorization failure: [{}] {}", ex.getErrorCode(), ex.getMessage());
+        ErrorDetail errorDetail = new ErrorDetail(ex.getErrorCode(), ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.error(ex.getMessage(), errorDetail);
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new HashMap<>();

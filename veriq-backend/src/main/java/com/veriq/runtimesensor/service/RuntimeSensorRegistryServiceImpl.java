@@ -37,6 +37,7 @@ public class RuntimeSensorRegistryServiceImpl implements RuntimeSensorRegistrySe
     @Transactional(readOnly = true)
     public List<RuntimeSensorRegistryResponseDTO> getAllRuntimeSensors() {
         return runtimeSensorRepository.findAll().stream()
+                .filter(sensor -> sensor.getCommissioningRecord() != null && "COMMISSIONED".equalsIgnoreCase(sensor.getCommissioningRecord().getStatus()))
                 .map(runtimeSensorRegistryMapper::toDto)
                 .collect(Collectors.toList());
     }

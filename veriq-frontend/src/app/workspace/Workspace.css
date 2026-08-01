@@ -1,19 +1,24 @@
 /* 
   VERIQ Enterprise Infrastructure Intelligence Platform
-  Modern Enterprise Engineering Platform Workspace Layout
-  Target: Clean White Primary Workspace (#FFFFFF / #F8FAFC)
-  Inspiration: Bentley Systems, Siemens Xcelerator, Autodesk Construction Cloud
+  Production Desktop Layout System
+  flagship enterprise product design system
 */
 
 :root {
   --veriq-bg-white: #FFFFFF;
   --veriq-bg-surface: #F8FAFC;
   --veriq-border-subtle: #E2E8F0;
+  --veriq-border-medium: #CBD5E1;
   --veriq-text-primary: #0F172A;
-  --veriq-text-secondary: #475569;
-  --veriq-text-muted: #94A3B8;
+  --veriq-text-secondary: #334155;
+  --veriq-text-muted: #64748B;
   --veriq-accent-blue: #2563EB;
   --veriq-accent-blue-light: #EFF6FF;
+  --veriq-status-healthy: #16A34A;
+  --veriq-status-warning: #D97706;
+  --veriq-status-critical: #DC2626;
+  --veriq-shadow-subtle: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  --veriq-shadow-elevated: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
 }
 
 html, body, #root {
@@ -23,125 +28,89 @@ html, body, #root {
   height: 100vh;
   overflow: hidden;
   box-sizing: border-box;
-  background-color: var(--veriq-bg-surface);
+  background-color: #F1F5F9;
   color: var(--veriq-text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .veriq-workspace-container {
   display: grid;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px 12px;
   overflow: hidden;
   box-sizing: border-box;
-  grid-template-columns: 260px 1fr 340px;
-  grid-template-rows: 54px 1fr 220px;
+  grid-template-columns: 280px 1fr 340px;
+  grid-template-rows: 42px 1fr 185px;
   grid-template-areas:
-    "header   header   header"
-    "nav      hero     decision"
-    "ops      ops      ops";
-  gap: 0;
-  background-color: #E2E8F0;
+    "contextbar contextbar contextbar"
+    "nav        hero       decision"
+    "ops        ops        ops";
+  gap: 10px;
+  background-color: #F1F5F9;
 }
 
-/* Region 1: Application Header (Kept Dark) */
-.veriq-region-header {
-  grid-area: header;
-  background-color: #0B1120;
+/* Independent Context Selector Bar Navigation Layer */
+.veriq-region-contextbar {
+  grid-area: contextbar;
+  background-color: #FFFFFF;
+  border: 1px solid var(--veriq-border-subtle);
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  box-sizing: border-box;
-  border-bottom: 1px solid #1E293B;
   overflow: hidden;
+  box-shadow: var(--veriq-shadow-subtle);
 }
 
-/* Region 2: Engineering Navigation (White Background) */
+/* Region 2: Left Operational Panel (Width 280px) */
 .veriq-region-nav {
   grid-area: nav;
   background-color: #FFFFFF;
+  border: 1px solid var(--veriq-border-subtle);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  border-right: 1px solid var(--veriq-border-subtle);
   overflow: hidden;
+  box-shadow: var(--veriq-shadow-subtle);
 }
 
-/* Region 3: Hero Engineering Workspace (Primary Focal Point) */
+/* Region 3: Hero Engineering Focus Area */
 .veriq-region-hero {
   grid-area: hero;
-  background-color: #F8FAFC;
+  background-color: #FFFFFF;
+  border: 1px solid var(--veriq-border-subtle);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow: hidden;
+  box-shadow: var(--veriq-shadow-subtle);
 }
 
-/* Region 4: Engineering Decision Panel (Secondary Surface) */
+/* Region 4: Engineering Decision Guidance Panel (Width 340px) */
 .veriq-region-decision {
   grid-area: decision;
   background-color: #FFFFFF;
+  border: 1px solid var(--veriq-border-subtle);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  border-left: 1px solid var(--veriq-border-subtle);
   overflow: hidden;
+  box-shadow: var(--veriq-shadow-subtle);
 }
 
-/* Region 5: Operational Intelligence Area (Organized Bottom Bar) */
+/* Region 5: Operational Intelligence & Awareness Panel */
 .veriq-region-ops {
   grid-area: ops;
-  background-color: #F8FAFC;
+  background-color: #FFFFFF;
+  border: 1px solid var(--veriq-border-subtle);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  border-top: 1px solid var(--veriq-border-subtle);
   overflow: hidden;
-}
-
-/* Placeholder Styling */
-.veriq-placeholder-box {
-  width: 100%;
-  height: 100%;
-  padding: 16px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1px dashed #CBD5E1;
-  background: #FFFFFF;
-}
-
-.veriq-placeholder-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.veriq-placeholder-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--veriq-text-secondary);
-}
-
-.veriq-placeholder-badge {
-  font-size: 10px;
-  font-family: monospace;
-  background: #EFF6FF;
-  color: #2563EB;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #BFDBFE;
-}
-
-.veriq-placeholder-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94A3B8;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: monospace;
+  box-shadow: var(--veriq-shadow-subtle);
 }

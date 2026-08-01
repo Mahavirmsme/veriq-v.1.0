@@ -1,5 +1,6 @@
 package com.veriq.role.service;
 
+import com.veriq.common.context.TenantContextResolver;
 import com.veriq.common.exception.BusinessRuleViolationException;
 import com.veriq.common.exception.ResourceNotFoundException;
 import com.veriq.role.dto.CreateRolePayloadDTO;
@@ -21,16 +22,21 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
+    private final TenantContextResolver tenantContextResolver;
 
-    public RoleServiceImpl(RoleRepository roleRepository, RoleMapper roleMapper) {
+    public RoleServiceImpl(RoleRepository roleRepository,
+                           RoleMapper roleMapper,
+                           TenantContextResolver tenantContextResolver) {
         this.roleRepository = roleRepository;
         this.roleMapper = roleMapper;
+        this.tenantContextResolver = tenantContextResolver;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RoleDTO> getAllRoles() {
-        return roleRepository.findAll().stream()
+        UUID organizationId = requireTenantContext();
+        return roleRepository.findByOrganizationIdOrSystemRoleTrue(organizationId).stream()
                 .map(roleMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -38,7 +44,8 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(readOnly = true)
     public RoleDTO getRoleById(UUID id) {
-        Role role = roleRepository.findById(id)
+        UUID organizationId = requireTenantContext();
+        Role role = roleRepository.findByIdAndOrganizationIdOrSystemRole(id, organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "id", id));
         return roleMapper.toDto(role);
     }
@@ -46,29 +53,47 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(readOnly = true)
     public RoleDTO getRoleByCode(String roleCode) {
-        Role role = roleRepository.findByRoleCode(roleCode.toUpperCase())
+        UUID organizationId = requireTenantContext();
+        Role role = roleRepository.findByRoleCodeAndOrganizationIdOrSystemRole(roleCode.trim(), organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "roleCode", roleCode));
         return roleMapper.toDto(role);
     }
 
     @Override
     public RoleDTO createRole(CreateRolePayloadDTO payload) {
+        UUID organizationId = requireTenantContext();
         String code = payload.getRoleCode().trim().toUpperCase();
-        if (roleRepository.existsByRoleCode(code)) {
-            throw new BusinessRuleViolationException("ROLE_CODE_EXISTS", "A role with code '" + code + "' already exists.");
+
+        if (roleRepository.existsByRoleCodeAndOrganizationIdOrSystemRole(code, organizationId)) {
+            throw new BusinessRuleViolationException("ROLE_CODE_EXISTS",
+                    "A role with code '" + code + "' already exists in this organization.");
         }
+
         Role role = roleMapper.toEntity(payload);
+        role.setOrganizationId(organizationId);
+
         Role saved = roleRepository.save(role);
         return roleMapper.toDto(saved);
     }
 
     @Override
     public RoleDTO updateRole(UUID id, UpdateRolePayloadDTO payload) {
-        Role role = roleRepository.findById(id)
+        UUID organizationId = requireTenantContext();
+        Role role = roleRepository.findByIdAndOrganizationIdOrSystemRole(id, organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "id", id));
-        
+
+        if (role.isSystemRole()) {
+            throw new BusinessRuleViolationException("SYSTEM_ROLE_PROTECTED",
+                    "System roles are protected and cannot be modified.");
+        }
+
         role.setRoleName(payload.getRoleName().trim());
-        role.setRoleDescription(payload.getRoleDescription());
+        if (payload.getRoleDescription() != null) {
+            role.setRoleDescription(payload.getRoleDescription().trim());
+        }
+        if (payload.getStatus() != null) {
+            role.setStatus(payload.getStatus());
+        }
 
         Role saved = roleRepository.save(role);
         return roleMapper.toDto(saved);
@@ -76,13 +101,21 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void deleteRole(UUID id) {
-        Role role = roleRepository.findById(id)
+        UUID organizationId = requireTenantContext();
+        Role role = roleRepository.findByIdAndOrganizationIdOrSystemRole(id, organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "id", id));
 
         if (role.isSystemRole()) {
-            throw new BusinessRuleViolationException("SYSTEM_ROLE_DELETE_RESTRICTED", "System roles cannot be deleted.");
+            throw new BusinessRuleViolationException("SYSTEM_ROLE_PROTECTED",
+                    "System roles are protected and cannot be deleted.");
         }
 
         roleRepository.delete(role);
+    }
+
+    private UUID requireTenantContext() {
+        return tenantContextResolver.resolveCurrentOrganizationId()
+                .orElseThrow(() -> new BusinessRuleViolationException("TENANT_CONTEXT_MISSING",
+                        "Operation rejected: Active organization tenant context is required."));
     }
 }

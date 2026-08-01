@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, User, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { LogOut, User, Cpu } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -12,57 +12,46 @@ export const Header: React.FC = () => {
     navigate('/login');
   };
 
+  const userRole = (user as any)?.role || (user?.roles && user.roles.length > 0 ? user.roles[0] : 'Lead Engineer');
+
   return (
     <header style={{
-      height: '56px',
-      borderBottom: '1px solid #E5E7EB',
-      background: '#FFFFFF',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 24px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50
+      height: '56px',
+      padding: '0 20px',
+      background: '#FFFFFF',
+      borderBottom: '1px solid #E5E7EB',
+      boxSizing: 'border-box',
+      fontFamily: 'Inter, sans-serif'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
           <div style={{
-            width: '32px',
-            height: '32px',
+            width: '28px',
+            height: '28px',
             borderRadius: '6px',
             background: '#2563EB',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            color: '#FFFFFF'
           }}>
-            <ShieldCheck size={20} color="#FFFFFF" />
+            <Cpu size={18} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', color: '#1F2937', lineHeight: 1.1 }}>VERIQ</span>
-            <span style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280', letterSpacing: '0.05em', marginTop: '1px' }}>DECISION PLATFORM</span>
-          </div>
+          <span style={{ fontWeight: 800, fontSize: '15px', color: '#1E293B', letterSpacing: '-0.02em' }}>
+            VERIQ Platform
+          </span>
         </Link>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: '4px' }}>
+          Infrastructure Intelligence
+        </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {isAuthenticated ? (
           <>
-            <button style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              background: '#F9FAFB',
-              border: '1px solid #E5E7EB',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#6B7280',
-              cursor: 'pointer'
-            }}>
-              <Bell size={16} />
-            </button>
-
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -75,7 +64,7 @@ export const Header: React.FC = () => {
               <User size={14} color="#2563EB" />
               <div style={{ fontSize: '12px' }}>
                 <span style={{ fontWeight: 600, color: '#1F2937' }}>{user?.name || 'Administrator'}</span>
-                <span style={{ color: '#9CA3AF', marginLeft: '6px' }}>• {user?.role || 'Lead Engineer'}</span>
+                <span style={{ color: '#9CA3AF', marginLeft: '6px' }}>• {userRole}</span>
               </div>
             </div>
 

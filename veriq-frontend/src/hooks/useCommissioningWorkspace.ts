@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { commissioningService, CommissioningRecord, RuntimeSensor } from '../services/commissioningService';
+import { commissioningService, CommissioningRecord } from '../services/commissioningService';
 import { sensorPackageService, SensorPackage } from '../services/sensorPackageService';
 
 export interface CommissioningRow {
@@ -18,9 +18,9 @@ export interface ValidationErrorItem {
   severity: 'ERROR' | 'SUCCESS';
 }
 
-const getPrefixForType = (type: string): string => {
+export const getPrefixForType = (type: string): string => {
   const lower = type.toLowerCase();
-  if (lower.contains ? lower.contains('tilt') : lower.includes('tilt')) return 'TS';
+  if (lower.includes('tilt')) return 'TS';
   if (lower.includes('piezo')) return 'PZ';
   if (lower.includes('soil moisture')) return 'SM';
   if (lower.includes('inclinometer')) return 'INC';

@@ -25,16 +25,19 @@ export const LoginPage: React.FC = () => {
       const session = await login(email.trim(), password);
       // Workspace Resolution
       if (session.allowedWorkspaces && session.allowedWorkspaces.length > 1) {
-        // Multi-role / Multi-workspace -> Open Workspace Selector
+        // Multi-workspace -> Open Workspace Selector
         navigate('/workspace-selector', { replace: true });
       } else if (session.allowedWorkspaces && session.allowedWorkspaces.length === 1) {
-        // Single role / Single workspace -> Open default workspace directly
+        // Single workspace -> Open specific workspace directly and persist selection
         const ws = session.allowedWorkspaces[0];
-        if (ws === 'administration') navigate('/admin', { replace: true });
-        else if (ws === 'configuration') navigate('/config', { replace: true });
-        else navigate('/ops', { replace: true });
+        localStorage.setItem('veriq_active_workspace', ws);
+        if (ws === 'portfolio') navigate('/portfolio', { replace: true });
+        else if (ws === 'administration') navigate('/admin', { replace: true });
+        else if (ws === 'configuration') navigate('/config/projects', { replace: true });
+        else if (ws === 'operations') navigate('/ops', { replace: true });
+        else navigate('/portfolio', { replace: true });
       } else {
-        navigate('/admin', { replace: true });
+        navigate('/workspace-selector', { replace: true });
       }
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Authentication failed. Invalid username or password.');

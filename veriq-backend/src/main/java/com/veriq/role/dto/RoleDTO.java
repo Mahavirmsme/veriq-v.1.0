@@ -7,10 +7,12 @@ import java.util.UUID;
 public class RoleDTO {
 
     private UUID id;
+    private UUID organizationId;
     private String roleCode;
     private String roleName;
     private String roleDescription;
     private boolean systemRole;
+    private String status;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private OffsetDateTime createdAt;
@@ -26,6 +28,14 @@ public class RoleDTO {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(UUID organizationId) {
+        this.organizationId = organizationId;
     }
 
     public String getRoleCode() {
@@ -58,6 +68,14 @@ public class RoleDTO {
 
     public void setSystemRole(boolean systemRole) {
         this.systemRole = systemRole;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -14,7 +14,17 @@ public interface DeploymentZoneRepository extends JpaRepository<DeploymentZone, 
 
     List<DeploymentZone> findByRegionIdOrderByStartChainageAsc(UUID regionId);
 
+    List<DeploymentZone> findByAssetId(UUID assetId);
+
+    List<DeploymentZone> findByPointAssetId(UUID pointAssetId);
+
+    List<DeploymentZone> findByRegionAssetId(UUID assetId);
+
     void deleteByRegionId(UUID regionId);
+
+    void deleteByAssetId(UUID assetId);
+
+    void deleteByPointAssetId(UUID pointAssetId);
 
     int countByRegionId(UUID regionId);
 }

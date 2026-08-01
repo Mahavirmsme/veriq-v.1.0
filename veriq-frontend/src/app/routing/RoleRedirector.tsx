@@ -55,17 +55,27 @@ export const RoleRedirector: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // ELSE authenticated -> Role Resolution -> Open Administration Workspace (/admin)
-  const role: UserRole = (user as any)?.role || 'ADMIN';
+  // Check persisted active workspace selected by user
+  const activeWs = localStorage.getItem('veriq_active_workspace');
+  if (activeWs === 'portfolio') return <Navigate to="/portfolio" replace />;
+  if (activeWs === 'administration') return <Navigate to="/admin" replace />;
+  if (activeWs === 'configuration') return <Navigate to="/config/projects" replace />;
+  if (activeWs === 'operations') return <Navigate to="/ops" replace />;
+
+  // Default fallback workspace for assigned primary role
+  const role: UserRole = (user as any)?.role || (user?.roles && user.roles[0]) || 'ROLE_ORG_ADMIN';
   const defaultWs = getDefaultWorkspaceForRole(role);
 
   switch (defaultWs) {
+    case 'portfolio':
+      return <Navigate to="/portfolio" replace />;
     case 'administration':
       return <Navigate to="/admin" replace />;
     case 'configuration':
-      return <Navigate to="/config" replace />;
+      return <Navigate to="/config/projects" replace />;
     case 'operations':
-    default:
       return <Navigate to="/ops" replace />;
+    default:
+      return <Navigate to="/portfolio" replace />;
   }
 };

@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Layers, CheckCircle2, AlertTriangle, ChevronRight, Save, ShieldCheck, FolderKanban, Ruler, Info, Edit3, Lock, Eye, Cpu, Radio } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Layers, CheckCircle2, AlertTriangle, ChevronRight, Save, ShieldCheck, FolderKanban, Ruler, Edit3, Lock, Eye, Cpu, Radio, MapPin, ArrowRight } from 'lucide-react';
 import { assetService, Asset } from '../services/assetService';
 import { regionService, Region } from '../services/regionService';
+import { pointAssetService, PointAsset } from '../services/pointAssetService';
+import { deploymentZoneService } from '../services/deploymentZoneService';
 import { useDeploymentZoneWorkspace } from '../hooks/useDeploymentZoneWorkspace';
 
 export const DeploymentZoneWorkspacePage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [regions, setRegions] = useState<Region[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<string>('');
+  const [pointAssets, setPointAssets] = useState<PointAsset[]>([]);
+  const [selectedPointAssetId, setSelectedPointAssetId] = useState<string>('');
   const [zoneCountInput, setZoneCountInput] = useState<number>(2);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  // Single Source of Truth State: isSaved controls READ ONLY vs EDIT mode
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [isTableExpanded, setIsTableExpanded] = useState<boolean>(true);
-  const [isUnlockConfirmOpen, setIsUnlockConfirmOpen] = useState<boolean>(false);
+  const [, setIsUnlockConfirmOpen] = useState<boolean>(false);
 
   const {
     zones,
     loading,
     saving,
     serverError,
-    validationResults,
+    validationResults: _validationResults,
     isValidatedSuccess,
     loadExistingZones,
     generateZones,
@@ -33,40 +38,76 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
     saveEngineeringDesign,
   } = useDeploymentZoneWorkspace();
 
-  // Load linear assets
+  // Load all top-level Assets
   useEffect(() => {
     assetService.getAll().then((data) => {
-      const linears = data.filter((a) => a.assetNature === 'Linear');
-      setAssets(linears);
+      setAssets(data || []);
       const urlAssetId = searchParams.get('assetId');
-      if (urlAssetId && linears.some((a) => a.id === urlAssetId)) {
+      if (urlAssetId && data.some((a) => a.id === urlAssetId)) {
         setSelectedAssetId(urlAssetId);
-      } else if (linears.length > 0) {
-        setSelectedAssetId(linears[0].id);
+      } else if (data && data.length > 0) {
+        setSelectedAssetId(data[0].id);
       }
     }).catch(() => setAssets([]));
   }, [searchParams]);
 
-  // Load regions for selected linear asset
+  const selectedAsset = assets.find((a) => a.id === selectedAssetId);
+  const isPointAsset = selectedAsset?.assetNature?.toUpperCase() === 'POINT';
+
+  // Load Regions or Point Assets depending on selected Asset Nature
   useEffect(() => {
     if (selectedAssetId) {
-      regionService.getByAssetId(selectedAssetId).then((rData) => {
-        setRegions(rData || []);
-        const urlRegionId = searchParams.get('regionId');
-        if (urlRegionId && rData.some((r) => r.id === urlRegionId)) {
-          setSelectedRegionId(urlRegionId);
-        } else if (rData && rData.length > 0) {
-          setSelectedRegionId(rData[0].id || '');
-        } else {
-          setSelectedRegionId('');
-        }
-      }).catch(() => setRegions([]));
+      if (isPointAsset) {
+        setRegions([]);
+        setSelectedRegionId('');
+        pointAssetService.getByAssetId(selectedAssetId).then((pData) => {
+          setPointAssets(pData || []);
+          if (pData && pData.length > 0) {
+            setSelectedPointAssetId(pData[0].id);
+          } else {
+            setSelectedPointAssetId('');
+          }
+        }).catch(() => setPointAssets([]));
+      } else {
+        setPointAssets([]);
+        setSelectedPointAssetId('');
+        regionService.getByAssetId(selectedAssetId).then((rData) => {
+          setRegions(rData || []);
+          const urlRegionId = searchParams.get('regionId');
+          if (urlRegionId && rData.some((r) => r.id === urlRegionId)) {
+            setSelectedRegionId(urlRegionId);
+          } else if (rData && rData.length > 0) {
+            setSelectedRegionId(rData[0].id || '');
+          } else {
+            setSelectedRegionId('');
+          }
+        }).catch(() => setRegions([]));
+      }
     }
-  }, [selectedAssetId, searchParams]);
+  }, [selectedAssetId, isPointAsset, searchParams]);
 
-  // Load persisted Deployment Zones whenever selectedRegionId changes
+  // Load Deployment Zones for selected Region or Point Asset
   useEffect(() => {
-    if (selectedRegionId) {
+    if (isPointAsset && selectedPointAssetId) {
+      setSaveSuccessMsg(null);
+      deploymentZoneService.getByAssetId(selectedPointAssetId).then((data) => {
+        if (data && data.length > 0) {
+          setIsSaved(true);
+        } else {
+          setIsSaved(false);
+          const pointObj = pointAssets.find((p) => p.id === selectedPointAssetId);
+          const ptStart = pointObj?.startChainage !== undefined ? Number(pointObj.startChainage) : Number(pointObj?.locationChainage || 0);
+          const ptLenM = pointObj?.structureLengthMeters !== undefined ? Number(pointObj.structureLengthMeters) : 0;
+          const ptEnd = pointObj?.endChainage !== undefined ? Number(pointObj.endChainage) : (ptStart + (ptLenM / 1000));
+
+          generateZones(1, ptStart, ptEnd);
+          if (pointObj) {
+            updateZoneRow(0, 'zoneName', `${pointObj.pointAssetName} Main Zone`);
+            updateZoneRow(0, 'zoneCode', 'PZ-01');
+          }
+        }
+      });
+    } else if (!isPointAsset && selectedRegionId) {
       setSaveSuccessMsg(null);
       loadExistingZones(selectedRegionId).then((data) => {
         if (data && data.length > 0) {
@@ -76,28 +117,38 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
         }
       });
     }
-  }, [selectedRegionId, loadExistingZones]);
+  }, [selectedAssetId, selectedRegionId, selectedPointAssetId, isPointAsset, pointAssets, loadExistingZones]);
 
-  const selectedAsset = assets.find((a) => a.id === selectedAssetId);
   const selectedRegion = regions.find((r) => r.id === selectedRegionId);
+  const selectedPointAsset = pointAssets.find((p) => p.id === selectedPointAssetId);
 
   const handleGenerate = () => {
-    if (!selectedRegion) return;
-    const start = selectedRegion.startChainage || 0;
-    const end = selectedRegion.endChainage || 0;
+    const start = !isPointAsset && selectedRegion
+      ? (selectedRegion.startChainage || 0)
+      : (selectedPointAsset?.startChainage !== undefined ? Number(selectedPointAsset.startChainage) : Number(selectedPointAsset?.locationChainage || 0));
+    const end = !isPointAsset && selectedRegion
+      ? (selectedRegion.endChainage || 0)
+      : (selectedPointAsset?.endChainage !== undefined ? Number(selectedPointAsset.endChainage) : (start + ((selectedPointAsset?.structureLengthMeters || 0) / 1000)));
     generateZones(zoneCountInput, start, end);
     setSaveSuccessMsg(null);
   };
 
   const handleValidate = () => {
-    if (!selectedRegion) return;
-    validateDesign(selectedRegion);
+    const ptStart = selectedPointAsset?.startChainage !== undefined ? Number(selectedPointAsset.startChainage) : Number(selectedPointAsset?.locationChainage || 0);
+    const ptEnd = selectedPointAsset?.endChainage !== undefined ? Number(selectedPointAsset.endChainage) : (ptStart + ((selectedPointAsset?.structureLengthMeters || 0) / 1000));
+    const ptLenKm = (selectedPointAsset?.structureLengthMeters || 0) / 1000;
+
+    const reg = !isPointAsset && selectedRegion
+      ? selectedRegion
+      : { id: selectedPointAssetId, startChainage: ptStart, endChainage: ptEnd, regionLength: ptLenKm } as any;
+    validateDesign(reg);
   };
 
   const handleSave = async () => {
-    if (!selectedRegion || !isValidatedSuccess) return;
+    if (!isValidatedSuccess) return;
     try {
-      await saveEngineeringDesign(selectedRegion.id || '');
+      const targetId = !isPointAsset && selectedRegion ? (selectedRegion.id || '') : selectedPointAssetId;
+      await saveEngineeringDesign(targetId);
       setSaveSuccessMsg('Deployment Zone engineering design successfully validated and saved!');
       setIsSaved(true);
       setIsTableExpanded(true);
@@ -106,16 +157,12 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
     }
   };
 
-  const handleConfirmUnlock = () => {
-    setIsUnlockConfirmOpen(false);
-    setIsSaved(false);
-    setSaveSuccessMsg(null);
-  };
+  const isReadyToDisplay = isPointAsset ? (selectedAsset && selectedPointAsset) : (selectedAsset && selectedRegion);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Enterprise Header Bar (Platform > Engineering Design > Deployment Designer) */}
+      {/* Enterprise Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6B7280', marginBottom: '4px' }}>
@@ -143,6 +190,7 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
 
         {/* Target Selectors */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* 1. ASSET SELECTOR */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>ASSET:</label>
             <select
@@ -152,26 +200,45 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
               onChange={(e) => setSelectedAssetId(e.target.value)}
             >
               {assets.map((ast) => (
-                <option key={ast.id} value={ast.id}>{ast.assetName}</option>
+                <option key={ast.id} value={ast.id}>
+                  {ast.assetName}
+                </option>
               ))}
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>REGION:</label>
-            <select
-              className="input-field"
-              style={{ height: '34px', fontSize: '12px', width: '220px' }}
-              value={selectedRegionId}
-              onChange={(e) => setSelectedRegionId(e.target.value)}
-            >
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.regionName} ({r.regionCode})</option>
-              ))}
-            </select>
-          </div>
+          {/* 2. SECONDARY SELECTOR: REGION (Linear) vs POINT ASSET (Point) */}
+          {isPointAsset ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>POINT ASSET:</label>
+              <select
+                className="input-field"
+                style={{ height: '34px', fontSize: '12px', width: '240px' }}
+                value={selectedPointAssetId}
+                onChange={(e) => setSelectedPointAssetId(e.target.value)}
+              >
+                {pointAssets.map((p) => (
+                  <option key={p.id} value={p.id}>{p.pointAssetName} ({p.pointAssetType})</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>REGION:</label>
+              <select
+                className="input-field"
+                style={{ height: '34px', fontSize: '12px', width: '220px' }}
+                value={selectedRegionId}
+                onChange={(e) => setSelectedRegionId(e.target.value)}
+              >
+                {regions.map((r) => (
+                  <option key={r.id} value={r.id}>{r.regionName} ({r.regionCode})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {isSaved && selectedRegion && zones.length > 0 && (
+          {isSaved && zones.length > 0 && (
             <button
               onClick={() => setIsUnlockConfirmOpen(true)}
               className="btn-secondary"
@@ -185,21 +252,8 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Warning if no saved regions exist for target asset */}
-      {selectedAsset && regions.length === 0 && (
-        <div style={{ padding: '16px 20px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', color: '#92400E' }}>
-          <Info size={20} color="#D97706" />
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '14px' }}>No Regions Defined for Asset</div>
-            <div style={{ fontSize: '13px', marginTop: '2px' }}>
-              Deployment Zone segmentation depends on saved Region definitions. Please open the <b>Region Workspace</b> and save an engineering design for <b>{selectedAsset.assetName}</b> first.
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Active Workspace */}
-      {selectedAsset && selectedRegion && (
+      {isReadyToDisplay && (
         <>
           {/* Header Summary Metadata Chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', background: '#FFFFFF', padding: '16px 20px', border: '1px solid #E5E7EB', borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
@@ -207,32 +261,49 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>PROJECT</div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <FolderKanban size={14} color="#2563EB" />
-                <span>{selectedAsset.projectName}</span>
+                <span>{selectedAsset?.projectName || 'Project'}</span>
               </div>
             </div>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>ASSET</div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Layers size={14} color="#2563EB" />
-                <span>{selectedAsset.assetName}</span>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>REGION</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Cpu size={14} color="#2563EB" />
-                <span>{selectedRegion.regionName} ({selectedRegion.regionCode})</span>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>REGION LENGTH</div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E40AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Ruler size={14} color="#2563EB" />
-                <span>km {selectedRegion.startChainage} → {selectedRegion.endChainage} ({selectedRegion.regionLength} km)</span>
+                <span>{selectedAsset?.assetName}</span>
               </div>
             </div>
             
-            {/* Clickable DEPLOYMENT ZONES attribute */}
+            {isPointAsset ? (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>POINT INFRASTRUCTURE OBJECT</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E40AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={14} color="#2563EB" />
+                  <span>{selectedPointAsset?.pointAssetName} ({selectedPointAsset?.pointAssetType})</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>REGION</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Cpu size={14} color="#2563EB" />
+                  <span>{selectedRegion?.regionName} ({selectedRegion?.regionCode})</span>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>
+                {isPointAsset ? 'POINT ENGINEERING SPAN' : 'REGION LENGTH'}
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E40AF', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Ruler size={14} color="#2563EB" />
+                <span>
+                  {isPointAsset
+                    ? `km ${selectedPointAsset?.startChainage ?? selectedPointAsset?.locationChainage ?? '0.000'} → ${selectedPointAsset?.endChainage ?? '0.000'} (${selectedPointAsset?.structureLengthMeters ?? 0} m)`
+                    : `km ${selectedRegion?.startChainage} → ${selectedRegion?.endChainage} (${selectedRegion?.regionLength} km)`}
+                </span>
+              </div>
+            </div>
+            
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B7280', letterSpacing: '0.05em' }}>DEPLOYMENT ZONES</div>
               <button
@@ -302,6 +373,36 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
                   <span>{saving ? 'Saving...' : 'Save Engineering Design'}</span>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* SAVED MODE: Enterprise Next Stage CTA Banner */}
+          {isSaved && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '14px 20px', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CheckCircle2 size={20} color="#166534" />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>DEPLOYMENT ZONE ARTIFACT PUBLISHED</div>
+                  <div style={{ fontSize: '12px', color: '#15803D' }}>Zone segmentation verified. Ready for Engineering Node Generation & Spacing Design.</div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const queryParams = new URLSearchParams();
+                  if (selectedAssetId) queryParams.set('assetId', selectedAssetId);
+                  if (isPointAsset && selectedPointAssetId) queryParams.set('pointAssetId', selectedPointAssetId);
+                  if (!isPointAsset && selectedRegionId) queryParams.set('regionId', selectedRegionId);
+                  if (zones.length > 0) queryParams.set('zoneId', (zones[0] as any).id || zones[0].zoneCode || '');
+                  
+                  navigate(`/config/nodes?${queryParams.toString()}`);
+                }}
+                className="btn-primary"
+                style={{ padding: '8px 18px', fontSize: '13px', background: '#166534', borderColor: '#15803D', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <span>Proceed to Engineering Nodes</span>
+                <ArrowRight size={15} />
+              </button>
             </div>
           )}
 
@@ -459,50 +560,6 @@ export const DeploymentZoneWorkspacePage: React.FC = () => {
                   </tbody>
                 </table>
               )}
-            </div>
-          )}
-
-          {/* Validation Report Panel (EDIT MODE ONLY) */}
-          {!isSaved && validationResults.length > 0 && (
-            <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px 20px', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #E5E7EB', paddingBottom: '8px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldCheck size={16} color={isValidatedSuccess ? '#16A34A' : '#DC2626'} />
-                  <span>DEPLOYMENT ZONE VALIDATION ENGINE REPORT</span>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: isValidatedSuccess ? '#F0FDF4' : '#FEF2F2', color: isValidatedSuccess ? '#166534' : '#991B1B', border: isValidatedSuccess ? '1px solid #BBF7D0' : '1px solid #FECACA' }}>
-                  {isValidatedSuccess ? 'VALIDATION SUCCESS - SAVE BUTTON ENABLED' : 'VALIDATION ERRORS DETECTED'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {validationResults.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', padding: '8px 12px', borderRadius: '6px', background: item.severity === 'SUCCESS' ? '#F0FDF4' : '#FEF2F2', border: item.severity === 'SUCCESS' ? '1px solid #BBF7D0' : '1px solid #FECACA' }}>
-                    {item.severity === 'SUCCESS' ? <CheckCircle2 size={16} color="#166534" /> : <AlertTriangle size={16} color="#991B1B" />}
-                    <span style={{ fontWeight: 600, color: item.severity === 'SUCCESS' ? '#166534' : '#991B1B' }}>[{item.rule}]</span>
-                    <span style={{ color: item.severity === 'SUCCESS' ? '#166534' : '#991B1B' }}>{item.message}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Unlock Confirmation Dialog */}
-          {isUnlockConfirmOpen && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(31, 41, 55, 0.4)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-              <div style={{ background: '#FFFFFF', width: '100%', maxWidth: '440px', padding: '24px 28px', borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#1F2937', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertTriangle size={18} color="#D97706" />
-                  <span>Unlock Deployment Zone Design</span>
-                </h3>
-                <p style={{ fontSize: '13px', color: '#4B5563', marginBottom: '20px', lineHeight: '1.5' }}>
-                  This will unlock the Deployment Zone Engineering Design for modification. You will need to re-validate engineering rules before saving changes.
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button onClick={() => setIsUnlockConfirmOpen(false)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '13px' }}>Cancel</button>
-                  <button onClick={handleConfirmUnlock} className="btn-primary" style={{ padding: '6px 16px', fontSize: '13px' }}>Continue</button>
-                </div>
-              </div>
             </div>
           )}
         </>

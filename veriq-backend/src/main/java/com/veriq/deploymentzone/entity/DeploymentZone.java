@@ -1,6 +1,8 @@
 package com.veriq.deploymentzone.entity;
 
+import com.veriq.asset.entity.Asset;
 import com.veriq.common.entity.BaseEntity;
+import com.veriq.pointasset.entity.PointAsset;
 import com.veriq.region.entity.Region;
 import jakarta.persistence.*;
 
@@ -15,9 +17,17 @@ public class DeploymentZone extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "region_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "region_id", nullable = true)
     private Region region;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "asset_id", nullable = true)
+    private Asset asset;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "point_asset_id", nullable = true)
+    private PointAsset pointAsset;
 
     @Column(name = "zone_code", nullable = false, length = 50)
     private String zoneCode;
@@ -69,6 +79,22 @@ public class DeploymentZone extends BaseEntity {
 
     public void setRegion(Region region) {
         this.region = region;
+    }
+
+    public Asset getAsset() {
+        return asset;
+    }
+
+    public void setAsset(Asset asset) {
+        this.asset = asset;
+    }
+
+    public PointAsset getPointAsset() {
+        return pointAsset;
+    }
+
+    public void setPointAsset(PointAsset pointAsset) {
+        this.pointAsset = pointAsset;
     }
 
     public String getZoneCode() {

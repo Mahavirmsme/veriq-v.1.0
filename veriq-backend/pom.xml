@@ -82,6 +82,27 @@
                     <target>21</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <execution>
+                        <id>sync-frontend-dist</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>node</executable>
+                            <arguments>
+                                <argument>-e</argument>
+                                <argument>const fs=require('fs'); const path=require('path'); const dist=path.resolve('../veriq-frontend/dist'); const target=path.resolve('src/main/resources/static'); if (fs.existsSync(dist)) { fs.mkdirSync(target, {recursive:true}); fs.cpSync(dist, target, {recursive:true}); }</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

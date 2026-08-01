@@ -23,8 +23,10 @@ public class EngineeringNodeController {
     }
 
     @GetMapping("/zone/{deploymentZoneId}")
-    public ResponseEntity<ApiResponse<List<EngineeringNodeResponseDTO>>> getNodesByDeploymentZoneId(@PathVariable UUID deploymentZoneId) {
-        List<EngineeringNodeResponseDTO> nodes = engineeringNodeService.getNodesByDeploymentZoneId(deploymentZoneId);
+    public ResponseEntity<ApiResponse<List<EngineeringNodeResponseDTO>>> getNodesByDeploymentZoneId(
+            @PathVariable UUID deploymentZoneId,
+            @RequestParam(required = false, defaultValue = "false") boolean commissionedOnly) {
+        List<EngineeringNodeResponseDTO> nodes = engineeringNodeService.getNodesByDeploymentZoneId(deploymentZoneId, commissionedOnly);
         return ResponseEntity.ok(ApiResponse.success(nodes, "Engineering node design retrieved successfully"));
     }
 

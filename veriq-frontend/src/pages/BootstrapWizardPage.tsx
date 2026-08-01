@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { bootstrapService } from '../services/bootstrapService';
-import { CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Building2, ChevronRight, Lock } from 'lucide-react';
+import { CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Building2, ChevronRight } from 'lucide-react';
 
 export const BootstrapWizardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,7 +9,7 @@ export const BootstrapWizardPage: React.FC = () => {
   const [isAlreadyInitialized, setIsAlreadyInitialized] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [initializing, setInitializing] = useState<boolean>(false);
+  const [, setInitializing] = useState<boolean>(false);
   const [initProgress, setInitProgress] = useState<number>(0);
   const [initStageText, setInitStageText] = useState<string>('');
 

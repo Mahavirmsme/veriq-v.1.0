@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit3, Trash2, Mail, UserCheck, Shield, FolderKanban, AlertTriangle, ChevronRight, RefreshCw, Filter, Building, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, Mail, FolderKanban, AlertTriangle, ChevronRight, RefreshCw, Filter, Building, CheckCircle2 } from 'lucide-react';
 import { useOrganizationState } from '../hooks/useOrganizationState';
 import { Organization, CreateOrganizationPayload, UpdateOrganizationPayload } from '../services/organizationService';
 
 export const OrganizationPage: React.FC = () => {
+  const navigate = useNavigate();
   const { organizations, loading, error, refresh, createOrganization, updateOrganization, deleteOrganization } = useOrganizationState();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
@@ -48,7 +49,6 @@ export const OrganizationPage: React.FC = () => {
   });
 
   const activeCount = (organizations || []).filter(o => o.status === 'ACTIVE').length;
-  const totalProjects = (organizations || []).reduce((acc, o) => acc + (o.projectCount || 0), 0);
 
   const resetForm = () => {
     setFormData({

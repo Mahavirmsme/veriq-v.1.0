@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ChevronRight, RefreshCw, Activity, Filter, Lock, Database, Layers, Power, AlertTriangle, Radio, AlertCircle, Wrench, Ban, Clock, History, Cpu, UserCheck, ShieldCheck } from 'lucide-react';
+import { Search, ChevronRight, RefreshCw, Activity, Filter, Lock, Clock, History, UserCheck } from 'lucide-react';
 import { assetService, Asset } from '../services/assetService';
 import { useRuntimeSensorRegistry } from '../hooks/useRuntimeSensorRegistry';
 import { RuntimeSensorRecord } from '../services/runtimeSensorService';
+import { EngineeringWorkspaceSecondaryNav } from '../components/EngineeringWorkspaceSecondaryNav';
 
 export const RuntimeSensorRegistryPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -39,14 +40,22 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
   }, [sensors, inspectedSensor]);
 
   const filteredSensors = sensors.filter((s) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      s.sensorCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.sensorType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.nodeCode && s.nodeCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.commissioningReference && s.commissioningReference.toLowerCase().includes(searchQuery.toLowerCase()));
+      !q ||
+      (s.sensorCode && s.sensorCode.toLowerCase().includes(q)) ||
+      (s.sensorType && s.sensorType.toLowerCase().includes(q)) ||
+      (s.nodeCode && s.nodeCode.toLowerCase().includes(q)) ||
+      (s.commissioningReference && s.commissioningReference.toLowerCase().includes(q)) ||
+      (s.assetName && s.assetName.toLowerCase().includes(q)) ||
+      (s.regionCode && s.regionCode.toLowerCase().includes(q));
 
-    const matchesAsset = selectedAssetId === 'ALL' || (s.assetName && assets.find(a => a.id === selectedAssetId)?.assetName === s.assetName);
-    const matchesStatus = selectedStatusFilter === 'ALL' || s.runtimeStatus.toUpperCase().replace(/\s+/g, '_') === selectedStatusFilter.toUpperCase().replace(/\s+/g, '_');
+    const selectedAssetObj = assets.find(a => a.id === selectedAssetId);
+    const matchesAsset = selectedAssetId === 'ALL' || 
+      (selectedAssetObj && s.assetName && s.assetName.toLowerCase() === selectedAssetObj.assetName.toLowerCase());
+
+    const matchesStatus = selectedStatusFilter === 'ALL' || 
+      (s.runtimeStatus && s.runtimeStatus.toUpperCase().replace(/\s+/g, '_') === selectedStatusFilter.toUpperCase().replace(/\s+/g, '_'));
 
     return matchesSearch && matchesAsset && matchesStatus;
   });
@@ -73,10 +82,9 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
     }
   };
 
-  const activeSensorsCount = sensors.filter(s => s.runtimeStatus.toLowerCase() === 'active' || s.runtimeStatus.toLowerCase() === 'receiving telemetry').length;
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1360px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+      <EngineeringWorkspaceSecondaryNav />
       
       {/* Enterprise Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB', paddingBottom: '16px' }}>
@@ -111,7 +119,7 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Lock size={15} color="#166534" />
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#1F2937' }}>SYSTEM CONTROLLED RUNTIME STATUS CARD</span>
-              <span style={{ fontFamily: 'var(--font-code)', fontSize: '12px', background: '#EFF6FF', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', border: '1px solid #BFDBFE', fontWeight: 700 }}>
+              <span style={{ fontFamily: 'monospace', fontSize: '12px', background: '#EFF6FF', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', border: '1px solid #BFDBFE', fontWeight: 700 }}>
                 {inspectedSensor.sensorCode}
               </span>
               <span style={{ fontSize: '13px', color: '#4B5563', fontWeight: 600 }}>({inspectedSensor.sensorType})</span>
@@ -152,7 +160,7 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
 
             <div>
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280' }}>LAST TRANSITION TIME</div>
-              <div style={{ fontSize: '12px', fontFamily: 'var(--font-code)', color: '#374151', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Clock size={13} color="#6B7280" />
                 <span>{inspectedSensor.lastTransitionTime ? new Date(inspectedSensor.lastTransitionTime).toLocaleString() : new Date(inspectedSensor.createdAt || Date.now()).toLocaleString()}</span>
               </div>
@@ -176,8 +184,7 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
             <input
               type="text"
               placeholder="Filter by Sensor ID, Type, Node..."
-              className="input-field"
-              style={{ paddingLeft: '30px', height: '34px', fontSize: '13px' }}
+              style={{ paddingLeft: '30px', height: '34px', fontSize: '13px', width: '100%', border: '1px solid #CBD5E1', borderRadius: '4px' }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -187,8 +194,7 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
             <Filter size={14} color="#6B7280" />
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#4B5563' }}>ASSET:</span>
             <select
-              className="input-field"
-              style={{ height: '34px', fontSize: '12px', width: '180px' }}
+              style={{ height: '34px', fontSize: '12px', width: '180px', border: '1px solid #CBD5E1', borderRadius: '4px', padding: '0 8px' }}
               value={selectedAssetId}
               onChange={(e) => setSelectedAssetId(e.target.value)}
             >
@@ -202,8 +208,7 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#4B5563' }}>OPERATIONAL STATE:</span>
             <select
-              className="input-field"
-              style={{ height: '34px', fontSize: '12px', width: '180px' }}
+              style={{ height: '34px', fontSize: '12px', width: '180px', border: '1px solid #CBD5E1', borderRadius: '4px', padding: '0 8px' }}
               value={selectedStatusFilter}
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
             >
@@ -246,16 +251,16 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '30px', color: '#6B7280', fontSize: '13px' }}>Loading runtime sensor registry...</div>
         ) : (
-          <table className="enterprise-table">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
             <thead>
-              <tr>
-                <th style={{ width: '15%' }}>RUNTIME SENSOR ID</th>
-                <th style={{ width: '18%' }}>SENSOR TYPE</th>
-                <th style={{ width: '15%' }}>ENGINEERING NODE</th>
-                <th style={{ width: '12%' }}>CHAINAGE (km)</th>
-                <th style={{ width: '15%' }}>COMMISSIONING REF</th>
-                <th style={{ width: '15%' }}>RUNTIME STATE</th>
-                <th style={{ width: '10%', textAlign: 'right' }}>STATE OWNER</th>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>
+                <th style={{ padding: '12px 16px', width: '15%' }}>RUNTIME SENSOR ID</th>
+                <th style={{ padding: '12px 16px', width: '18%' }}>SENSOR TYPE</th>
+                <th style={{ padding: '12px 16px', width: '15%' }}>ENGINEERING NODE</th>
+                <th style={{ padding: '12px 16px', width: '12%' }}>CHAINAGE (km)</th>
+                <th style={{ padding: '12px 16px', width: '15%' }}>COMMISSIONING REF</th>
+                <th style={{ padding: '12px 16px', width: '15%' }}>RUNTIME STATE</th>
+                <th style={{ padding: '12px 16px', width: '10%', textAlign: 'right' }}>STATE OWNER</th>
               </tr>
             </thead>
             <tbody>
@@ -268,41 +273,42 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
                     onClick={() => setInspectedSensor(row)}
                     style={{
                       cursor: 'pointer',
+                      borderBottom: '1px solid #F1F5F9',
                       background: isSelected ? '#EFF6FF' : 'transparent',
                     }}
                   >
-                    <td>
-                      <span style={{ fontFamily: 'var(--font-code)', fontSize: '12px', background: '#EFF6FF', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', border: '1px solid #BFDBFE', fontWeight: 700 }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '12px', background: '#EFF6FF', color: '#1E40AF', padding: '2px 8px', borderRadius: '4px', border: '1px solid #BFDBFE', fontWeight: 700 }}>
                         {row.sensorCode}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: '#1F2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Activity size={14} color="#2563EB" />
                         <span>{row.sensorType}</span>
                       </span>
                     </td>
-                    <td>
+                    <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>
                         {row.nodeCode} (#{row.nodeNumber})
                       </span>
                     </td>
-                    <td>
-                      <span style={{ fontSize: '12px', fontFamily: 'var(--font-code)', color: '#4B5563' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#4B5563' }}>
                         km {row.formattedChainage || row.nodeChainage}
                       </span>
                     </td>
-                    <td>
-                      <span style={{ fontFamily: 'var(--font-code)', fontSize: '12px', color: '#6B7280' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#6B7280' }}>
                         {row.commissioningReference || 'COMM-SUCCESS'}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ padding: '12px 16px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                         {badge.label}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>
                         {row.currentStateOwner || 'Commissioning Service'}
                       </span>
@@ -341,30 +347,30 @@ export const RuntimeSensorRegistryPage: React.FC = () => {
 
             <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
               {inspectedSensor.transitionLogs && inspectedSensor.transitionLogs.length > 0 ? (
-                <table className="enterprise-table">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
-                    <tr>
-                      <th style={{ width: '25%' }}>TIMESTAMP</th>
-                      <th style={{ width: '30%' }}>STATE TRANSITION</th>
-                      <th style={{ width: '25%' }}>SYSTEM OWNER</th>
-                      <th style={{ width: '20%' }}>REASON</th>
+                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }}>
+                      <th style={{ padding: '8px 12px', width: '25%' }}>TIMESTAMP</th>
+                      <th style={{ padding: '8px 12px', width: '30%' }}>STATE TRANSITION</th>
+                      <th style={{ padding: '8px 12px', width: '25%' }}>SYSTEM OWNER</th>
+                      <th style={{ padding: '8px 12px', width: '20%' }}>REASON</th>
                     </tr>
                   </thead>
                   <tbody>
                     {inspectedSensor.transitionLogs.map((log) => (
-                      <tr key={log.id}>
-                        <td style={{ fontSize: '11px', fontFamily: 'var(--font-code)', color: '#374151' }}>
+                      <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={{ padding: '8px 12px', fontSize: '11px', fontFamily: 'monospace', color: '#374151' }}>
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
-                        <td style={{ fontSize: '12px', fontWeight: 600 }}>
+                        <td style={{ padding: '8px 12px', fontSize: '12px', fontWeight: 600 }}>
                           <span style={{ color: '#6B7280' }}>{log.previousState}</span>
                           <span style={{ color: '#2563EB', margin: '0 6px' }}>→</span>
                           <span style={{ color: '#1F2937' }}>{log.newState}</span>
                         </td>
-                        <td style={{ fontSize: '12px', color: '#1E40AF', fontWeight: 600 }}>
+                        <td style={{ padding: '8px 12px', fontSize: '12px', color: '#1E40AF', fontWeight: 600 }}>
                           {log.transitionOwner}
                         </td>
-                        <td style={{ fontSize: '11px', color: '#4B5563' }}>
+                        <td style={{ padding: '8px 12px', fontSize: '11px', color: '#4B5563' }}>
                           {log.reason}
                         </td>
                       </tr>

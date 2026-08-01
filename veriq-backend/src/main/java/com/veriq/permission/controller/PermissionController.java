@@ -1,12 +1,8 @@
 package com.veriq.permission.controller;
 
 import com.veriq.common.dto.ApiResponse;
-import com.veriq.permission.dto.CreatePermissionPayloadDTO;
 import com.veriq.permission.dto.PermissionDTO;
-import com.veriq.permission.dto.UpdatePermissionPayloadDTO;
 import com.veriq.permission.service.PermissionService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,22 +32,15 @@ public class PermissionController {
         return ResponseEntity.ok(ApiResponse.success(permission, "Permission retrieved successfully"));
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<PermissionDTO>> createPermission(@Valid @RequestBody CreatePermissionPayloadDTO payload) {
-        PermissionDTO permission = permissionService.createPermission(payload);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(permission, "Permission created successfully"));
+    @GetMapping("/code/{code}")
+    public ResponseEntity<ApiResponse<PermissionDTO>> getPermissionByCode(@PathVariable String code) {
+        PermissionDTO permission = permissionService.getPermissionByCode(code);
+        return ResponseEntity.ok(ApiResponse.success(permission, "Permission retrieved successfully"));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<PermissionDTO>> updatePermission(@PathVariable UUID id, @Valid @RequestBody UpdatePermissionPayloadDTO payload) {
-        PermissionDTO permission = permissionService.updatePermission(id, payload);
-        return ResponseEntity.ok(ApiResponse.success(permission, "Permission updated successfully"));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deletePermission(@PathVariable UUID id) {
-        permissionService.deletePermission(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Permission deleted successfully"));
+    @GetMapping("/category/{category}")
+    public ResponseEntity<ApiResponse<List<PermissionDTO>>> getPermissionsByCategory(@PathVariable String category) {
+        List<PermissionDTO> permissions = permissionService.getPermissionsByCategory(category);
+        return ResponseEntity.ok(ApiResponse.success(permissions, "Category permissions retrieved successfully"));
     }
 }

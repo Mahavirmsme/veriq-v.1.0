@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { WorkspaceType, UserRole } from '../authentication/RoleResolver';
+import { WorkspaceType, UserRole, getAllowedWorkspacesForRole } from '../authentication/RoleResolver';
 import { useAuth } from '../../context/AuthContext';
 
 interface WorkspaceContextType {
@@ -16,14 +16,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const { user } = useAuth();
   const location = useLocation();
 
-  const userRole: UserRole = (user as any)?.role || 'ADMIN';
-  
+  const userRole: UserRole = (user as any)?.role || (user?.roles && user.roles[0]) || 'ROLE_ORG_ADMIN';
+
   // Dynamic location-based workspace resolution
   const getWorkspaceFromPath = (path: string): WorkspaceType => {
+    if (path.startsWith('/portfolio')) return 'portfolio';
     if (path.startsWith('/admin')) return 'administration';
     if (path.startsWith('/config')) return 'configuration';
     if (path.startsWith('/ops')) return 'operations';
-    return 'administration';
+    return 'portfolio';
   };
 
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceType>(() => {
@@ -34,10 +35,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setActiveWorkspace(getWorkspaceFromPath(location.pathname));
   }, [location.pathname]);
 
-  // Allowed workspaces loaded from authenticated user session
-  const allowedWorkspaces: WorkspaceType[] = (user as any)?.allowedWorkspaces 
+  // Allowed workspaces dynamically resolved from authenticated user's primary assigned role
+  const allowedWorkspaces: WorkspaceType[] = (user as any)?.allowedWorkspaces && (user as any).allowedWorkspaces.length > 0
     ? (user as any).allowedWorkspaces as WorkspaceType[]
-    : ['administration', 'configuration', 'operations'];
+    : getAllowedWorkspacesForRole(userRole);
 
   return (
     <WorkspaceContext.Provider value={{

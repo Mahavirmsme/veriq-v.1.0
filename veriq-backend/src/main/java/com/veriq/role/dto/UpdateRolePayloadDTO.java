@@ -9,6 +9,8 @@ public class UpdateRolePayloadDTO {
 
     private String roleDescription;
 
+    private String status;
+
     public UpdateRolePayloadDTO() {}
 
     public String getRoleName() {
@@ -25,5 +27,13 @@ public class UpdateRolePayloadDTO {
 
     public void setRoleDescription(String roleDescription) {
         this.roleDescription = roleDescription;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

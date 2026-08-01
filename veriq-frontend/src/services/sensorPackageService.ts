@@ -59,6 +59,10 @@ export interface SensorPackageItem {
   id?: string;
   sensorType: string;
   quantity: number;
+  samplingSeconds?: number;
+  samplingIntervalSeconds?: number;
+  warningThreshold?: string;
+  criticalThreshold?: string;
   measurementParameter?: string;
   engineeringPurpose?: string;
   remarks?: string;
@@ -82,6 +86,9 @@ export interface SaveSensorPackagePayload {
   items: {
     sensorType: string;
     quantity: number;
+    samplingSeconds?: number;
+    warningThreshold?: string;
+    criticalThreshold?: string;
     measurementParameter?: string;
     engineeringPurpose?: string;
     remarks?: string;

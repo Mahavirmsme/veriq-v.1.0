@@ -28,6 +28,12 @@ public class DeploymentZoneController {
         return ResponseEntity.ok(ApiResponse.success(zones, "Deployment zone engineering design retrieved successfully"));
     }
 
+    @GetMapping("/asset/{assetId}")
+    public ResponseEntity<ApiResponse<List<DeploymentZoneResponseDTO>>> getZonesByAssetId(@PathVariable UUID assetId) {
+        List<DeploymentZoneResponseDTO> zones = deploymentZoneService.getZonesByAssetId(assetId);
+        return ResponseEntity.ok(ApiResponse.success(zones, "Deployment zone engineering design for asset retrieved successfully"));
+    }
+
     @PostMapping("/save")
     public ResponseEntity<ApiResponse<List<DeploymentZoneResponseDTO>>> saveDeploymentZones(
             @Valid @RequestBody SaveDeploymentZonesRequestDTO requestDTO) {

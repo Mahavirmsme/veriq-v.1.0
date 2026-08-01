@@ -4,6 +4,9 @@ import { sensorPackageService, SensorPackage, SaveSensorPackagePayload, SENSOR_M
 export interface EditableSensorRow {
   sensorType: string;
   quantity: number;
+  samplingIntervalSeconds: number;
+  warningThreshold: string;
+  criticalThreshold: string;
   measurementParameter: string;
   engineeringPurpose: string;
   remarks: string;
@@ -35,6 +38,9 @@ export const useSensorPackageWorkspace = () => {
         const rows: EditableSensorRow[] = data.items.map((i) => ({
           sensorType: i.sensorType,
           quantity: i.quantity,
+          samplingIntervalSeconds: i.samplingSeconds || i.samplingIntervalSeconds || 2,
+          warningThreshold: i.warningThreshold || '',
+          criticalThreshold: i.criticalThreshold || '',
           measurementParameter: i.measurementParameter || '',
           engineeringPurpose: i.engineeringPurpose || '',
           remarks: i.remarks || '',
@@ -68,6 +74,9 @@ export const useSensorPackageWorkspace = () => {
       {
         sensorType,
         quantity: 1,
+        samplingIntervalSeconds: 2,
+        warningThreshold: '',
+        criticalThreshold: '',
         measurementParameter: param,
         engineeringPurpose: `${sensorType} monitoring`,
         remarks: '',
@@ -141,6 +150,15 @@ export const useSensorPackageWorkspace = () => {
         });
         hasErrors = true;
       }
+
+      if (row.samplingIntervalSeconds <= 0) {
+        results.push({
+          rule: 'POSITIVE_SAMPLING',
+          message: `Sampling interval for "${row.sensorType}" must be at least 1 second.`,
+          severity: 'ERROR',
+        });
+        hasErrors = true;
+      }
     }
 
     if (!hasErrors) {
@@ -176,6 +194,9 @@ export const useSensorPackageWorkspace = () => {
         items: items.map((i) => ({
           sensorType: i.sensorType,
           quantity: i.quantity,
+          samplingSeconds: i.samplingIntervalSeconds,
+          warningThreshold: i.warningThreshold,
+          criticalThreshold: i.criticalThreshold,
           measurementParameter: i.measurementParameter,
           engineeringPurpose: i.engineeringPurpose,
           remarks: i.remarks,
@@ -186,6 +207,9 @@ export const useSensorPackageWorkspace = () => {
         const savedRows: EditableSensorRow[] = savedData.items.map((i) => ({
           sensorType: i.sensorType,
           quantity: i.quantity,
+          samplingIntervalSeconds: i.samplingSeconds || i.samplingIntervalSeconds || 2,
+          warningThreshold: i.warningThreshold || '',
+          criticalThreshold: i.criticalThreshold || '',
           measurementParameter: i.measurementParameter || '',
           engineeringPurpose: i.engineeringPurpose || '',
           remarks: i.remarks || '',

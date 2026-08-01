@@ -14,6 +14,9 @@ public class UserMapper {
         }
         UserDTO dto = new UserDTO();
         dto.setId(entity.getId());
+        dto.setOrganizationId(entity.getOrganizationId());
+        dto.setDepartmentId(entity.getDepartmentId());
+        dto.setDesignationId(entity.getDesignationId());
         dto.setFirstName(entity.getFirstName());
         dto.setLastName(entity.getLastName());
         dto.setEmail(entity.getEmail());
@@ -32,6 +35,8 @@ public class UserMapper {
         entity.setLastName(payload.getLastName() != null ? payload.getLastName().trim() : null);
         entity.setEmail(payload.getEmail().trim().toLowerCase());
         entity.setPasswordHash(payload.getPasswordHash());
+        entity.setDepartmentId(payload.getDepartmentId());
+        entity.setDesignationId(payload.getDesignationId());
         entity.setStatus(payload.getStatus() != null ? payload.getStatus() : "ACTIVE");
         return entity;
     }

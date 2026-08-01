@@ -23,6 +23,15 @@ public class SensorPackageItem extends BaseEntity {
     @Column(name = "quantity", nullable = false)
     private Integer quantity = 1;
 
+    @Column(name = "sampling_seconds")
+    private Integer samplingSeconds = 1;
+
+    @Column(name = "warning_threshold", length = 100)
+    private String warningThreshold;
+
+    @Column(name = "critical_threshold", length = 100)
+    private String criticalThreshold;
+
     @Column(name = "measurement_parameter", length = 150)
     private String measurementParameter;
 
@@ -71,6 +80,30 @@ public class SensorPackageItem extends BaseEntity {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public Integer getSamplingSeconds() {
+        return samplingSeconds;
+    }
+
+    public void setSamplingSeconds(Integer samplingSeconds) {
+        this.samplingSeconds = samplingSeconds;
+    }
+
+    public String getWarningThreshold() {
+        return warningThreshold;
+    }
+
+    public void setWarningThreshold(String warningThreshold) {
+        this.warningThreshold = warningThreshold;
+    }
+
+    public String getCriticalThreshold() {
+        return criticalThreshold;
+    }
+
+    public void setCriticalThreshold(String criticalThreshold) {
+        this.criticalThreshold = criticalThreshold;
     }
 
     public String getMeasurementParameter() {

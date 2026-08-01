@@ -10,5 +10,7 @@ public interface DeploymentZoneService {
 
     List<DeploymentZoneResponseDTO> getZonesByRegionId(UUID regionId);
 
+    List<DeploymentZoneResponseDTO> getZonesByAssetId(UUID assetId);
+
     List<DeploymentZoneResponseDTO> saveDeploymentZones(SaveDeploymentZonesRequestDTO requestDTO);
 }

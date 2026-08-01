@@ -41,10 +41,19 @@ public class EngineeringNodeServiceImpl implements EngineeringNodeService {
     @Override
     @Transactional(readOnly = true)
     public List<EngineeringNodeResponseDTO> getNodesByDeploymentZoneId(UUID deploymentZoneId) {
+        return getNodesByDeploymentZoneId(deploymentZoneId, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EngineeringNodeResponseDTO> getNodesByDeploymentZoneId(UUID deploymentZoneId, boolean commissionedOnly) {
         if (!deploymentZoneRepository.existsById(deploymentZoneId)) {
             throw new ResourceNotFoundException("DeploymentZone", "id", deploymentZoneId);
         }
-        return engineeringNodeRepository.findByDeploymentZoneIdOrderByNodeNumberAsc(deploymentZoneId).stream()
+        List<EngineeringNode> list = commissionedOnly
+                ? engineeringNodeRepository.findCommissionedNodesByDeploymentZoneId(deploymentZoneId)
+                : engineeringNodeRepository.findByDeploymentZoneIdOrderByNodeNumberAsc(deploymentZoneId);
+        return list.stream()
                 .map(engineeringNodeMapper::toDto)
                 .collect(Collectors.toList());
     }

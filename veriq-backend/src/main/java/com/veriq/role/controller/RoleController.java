@@ -36,12 +36,6 @@ public class RoleController {
         return ResponseEntity.ok(ApiResponse.success(role, "Role retrieved successfully"));
     }
 
-    @GetMapping("/code/{roleCode}")
-    public ResponseEntity<ApiResponse<RoleDTO>> getRoleByCode(@PathVariable String roleCode) {
-        RoleDTO role = roleService.getRoleByCode(roleCode);
-        return ResponseEntity.ok(ApiResponse.success(role, "Role retrieved successfully"));
-    }
-
     @PostMapping
     public ResponseEntity<ApiResponse<RoleDTO>> createRole(@Valid @RequestBody CreateRolePayloadDTO payload) {
         RoleDTO role = roleService.createRole(payload);

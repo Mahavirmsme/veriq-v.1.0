@@ -10,5 +10,7 @@ public interface EngineeringNodeService {
 
     List<EngineeringNodeResponseDTO> getNodesByDeploymentZoneId(UUID deploymentZoneId);
 
+    List<EngineeringNodeResponseDTO> getNodesByDeploymentZoneId(UUID deploymentZoneId, boolean commissionedOnly);
+
     List<EngineeringNodeResponseDTO> saveEngineeringNodes(SaveEngineeringNodesRequestDTO requestDTO);
 }

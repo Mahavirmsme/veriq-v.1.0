@@ -53,6 +53,11 @@ export const deploymentZoneService = {
     return response.data.data;
   },
 
+  getByAssetId: async (assetId: string): Promise<DeploymentZone[]> => {
+    const response = await apiClient.get<ApiResponse<DeploymentZone[]>>(`/deployment-zones/asset/${assetId}`);
+    return response.data.data;
+  },
+
   saveZones: async (payload: SaveDeploymentZonesPayload): Promise<DeploymentZone[]> => {
     const response = await apiClient.post<ApiResponse<DeploymentZone[]>>('/deployment-zones/save', payload);
     return response.data.data;
