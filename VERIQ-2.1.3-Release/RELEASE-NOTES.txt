@@ -1,0 +1,37 @@
+====================================================================
+VERIQ — Engineering Decision Intelligence Platform
+RELEASE NOTES — VERSION 2.1.3 (PER-USER PERMISSION & SHORTCUT HARDENING)
+====================================================================
+
+PRODUCT IDENTITY:
+Product: VERIQ Infrastructure Intelligence Platform
+Version: 2.1.3
+Release Type: External Computer Standalone Windows Distribution Package
+Package Artifact: VERIQ-2.1.3-Setup.exe
+
+DESCRIPTION:
+VERIQ 2.1.3 provides critical hardening for standalone Windows desktop deployments. It fixes PostgreSQL cluster initialization permissions when run under Program Files (x86) as a standard user, enforces IPv4 loopback connection arguments for database creation, and guarantees Desktop shortcut placement across all Windows desktop profiles.
+
+HARDENING IN VERIQ 2.1.3:
+1. Dynamic Per-User PostgreSQL Cluster Data Path:
+   - In veriq-launcher.cs, GetPgDataPath() automatically resolves pgData. If the installation directory is in Program Files (x86) or write-protected, pgData falls back to %LOCALAPPDATA%\VERIQ Platform\postgresql\data.
+   - Standard Windows non-administrator users now have 100% read/write/create access for initdb.exe, eliminating permission denied errors.
+
+2. Loopback Host Arguments on createdb.exe:
+   - Passes explicit -h 127.0.0.1 -p 5432 -U postgres veriq_db arguments to createdb.exe.
+
+3. Dual Desktop & Start Menu Shortcut Placement:
+   - Configured both {userdesktop} and {commondesktop} shortcuts in Inno Setup [Icons] with explicit WorkingDir: "{app}".
+   - Ensures the VERIQ desktop shortcut is always visible on the active user's desktop regardless of UAC elevation mode.
+
+INSTALLATION & UPGRADE INSTRUCTIONS:
+1. Transfer VERIQ-2.1.3-Setup.exe to target Windows desktop machine.
+2. Run VERIQ-2.1.3-Setup.exe.
+3. Launch VERIQ Platform via the Desktop shortcut.
+4. Launcher automatically initializes database, starts backend, and opens http://localhost:8080/ops/dashboard.
+
+REQUIREMENTS:
+- OS: 64-bit Windows 10/11 or Windows Server 2016+
+- Port: 8080 (backend & UI)
+- External Dependencies: None (embedded JRE and embedded PostgreSQL included)
+====================================================================

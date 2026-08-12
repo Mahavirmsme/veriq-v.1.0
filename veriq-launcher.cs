@@ -13,7 +13,7 @@ namespace VeriqLauncher
     {
         private static Process backendProcess = null;
         private static NotifyIcon trayIcon = null;
-        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.2";
+        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.3";
         private static string targetUrl = "http://localhost:8080";
         private static string baseDir = "";
         private static string logsDir = "";
@@ -45,10 +45,10 @@ namespace VeriqLauncher
                 Directory.CreateDirectory(Path.Combine(veriqData, "runtime"));
             }
 
-            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.2 STARTED ==========");
+            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.3 STARTED ==========");
 
             bool createdNew;
-            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_212", out createdNew))
+            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_213", out createdNew))
             {
                 if (!createdNew)
                 {
@@ -64,6 +64,26 @@ namespace VeriqLauncher
                 bgThread.Start();
 
                 Application.Run();
+            }
+        }
+
+        private static string GetPgDataPath()
+        {
+            string defaultPgData = Path.Combine(baseDir, "postgresql", "data");
+            try
+            {
+                Directory.CreateDirectory(defaultPgData);
+                string testPgFile = Path.Combine(defaultPgData, ".write_test");
+                File.WriteAllText(testPgFile, "test");
+                File.Delete(testPgFile);
+                return defaultPgData;
+            }
+            catch
+            {
+                string userAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string fallbackPgData = Path.Combine(userAppData, "VERIQ Platform", "postgresql", "data");
+                Directory.CreateDirectory(fallbackPgData);
+                return fallbackPgData;
             }
         }
 
@@ -147,7 +167,7 @@ namespace VeriqLauncher
             try
             {
                 string pgBin = Path.Combine(baseDir, "postgresql", "bin");
-                string pgData = Path.Combine(baseDir, "postgresql", "data");
+                string pgData = GetPgDataPath();
                 string pgCtl = Path.Combine(pgBin, "pg_ctl.exe");
                 string initDb = Path.Combine(pgBin, "initdb.exe");
                 string createDb = Path.Combine(pgBin, "createdb.exe");
@@ -159,6 +179,7 @@ namespace VeriqLauncher
                     return;
                 }
 
+                LogLauncher("Using PostgreSQL cluster data path: " + pgData);
                 Directory.CreateDirectory(pgData);
 
                 // Initialize cluster if PG_VERSION is missing
@@ -208,7 +229,7 @@ namespace VeriqLauncher
                     LogLauncher("Ensuring database 'veriq_db' exists...");
                     ProcessStartInfo createDbInfo = new ProcessStartInfo();
                     createDbInfo.FileName = createDb;
-                    createDbInfo.Arguments = "-U postgres veriq_db";
+                    createDbInfo.Arguments = "-h 127.0.0.1 -p 5432 -U postgres veriq_db";
                     createDbInfo.CreateNoWindow = true;
                     createDbInfo.UseShellExecute = false;
                     createDbInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -305,7 +326,7 @@ namespace VeriqLauncher
                     HttpWebRequest req2 = (HttpWebRequest)WebRequest.Create(targetUrl);
                     req2.Method = "GET";
                     req2.Timeout = 1200;
-                    using (HttpWebResponse resp2 = (HttpWebResponse)req2.GetResponse())
+                    using (HttpWebResponse resp2 = (HttpWebResponse)request.GetResponse())
                     {
                         return resp2.StatusCode == HttpStatusCode.OK;
                     }
@@ -338,7 +359,7 @@ namespace VeriqLauncher
             try
             {
                 string pgCtl = Path.Combine(baseDir, "postgresql", "bin", "pg_ctl.exe");
-                string pgData = Path.Combine(baseDir, "postgresql", "data");
+                string pgData = GetPgDataPath();
 
                 if (File.Exists(pgCtl) && Directory.Exists(pgData))
                 {

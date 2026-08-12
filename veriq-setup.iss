@@ -1,11 +1,11 @@
 ; =====================================================================
-; VERIQ Infrastructure Intelligence Platform 2.1.2 Inno Setup Script
+; VERIQ Infrastructure Intelligence Platform 2.1.3 Inno Setup Script
 ; Official Standalone Enterprise Offline Distribution Package
 ; =====================================================================
 
 #define MyAppName "VERIQ Infrastructure Intelligence Platform"
 #define MyAppShortName "VERIQ Platform"
-#define MyAppVersion "2.1.2"
+#define MyAppVersion "2.1.3"
 #define MyAppPublisher "VERIQ Systems"
 #define MyAppURL "http://localhost:8080"
 #define MyAppExeName "veriq-launcher.exe"
@@ -21,14 +21,14 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonpf}\VERIQ Platform
 DefaultGroupName={#MyAppShortName}
 DisableProgramGroupPage=yes
-OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.2-Release
-OutputBaseFilename=VERIQ-2.1.2-Setup
+OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.3-Release
+OutputBaseFilename=VERIQ-2.1.3-Setup
 Compression=lzma2/max
 SolidCompression=no
 WizardStyle=modern
 PrivilegesRequired=admin
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
-AppMutex=VERIQ_PLATFORM_STANDALONE_LAUNCHER_212,VERIQ_PLATFORM_STANDALONE_LAUNCHER_211,VERIQ_PLATFORM_STANDALONE_LAUNCHER_210
+AppMutex=VERIQ_PLATFORM_STANDALONE_LAUNCHER_213,VERIQ_PLATFORM_STANDALONE_LAUNCHER_212,VERIQ_PLATFORM_STANDALONE_LAUNCHER_211,VERIQ_PLATFORM_STANDALONE_LAUNCHER_210
 CloseApplications=yes
 CloseApplicationsFilter=*veriq-launcher.exe*
 
@@ -53,7 +53,8 @@ Name: "{app}\postgresql\data"; Permissions: users-modify
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch VERIQ Infrastructure Intelligence Platform"; Flags: postinstall nowait skipifsilent
