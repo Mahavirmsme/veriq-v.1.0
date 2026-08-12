@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -13,7 +14,7 @@ namespace VeriqLauncher
     {
         private static Process backendProcess = null;
         private static NotifyIcon trayIcon = null;
-        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.3";
+        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.4";
         private static string targetUrl = "http://localhost:8080";
         private static string baseDir = "";
         private static string logsDir = "";
@@ -45,10 +46,10 @@ namespace VeriqLauncher
                 Directory.CreateDirectory(Path.Combine(veriqData, "runtime"));
             }
 
-            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.3 STARTED ==========");
+            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.4 STARTED ==========");
 
             bool createdNew;
-            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_213", out createdNew))
+            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_214", out createdNew))
             {
                 if (!createdNew)
                 {
@@ -114,6 +115,7 @@ namespace VeriqLauncher
                 if (IsPortOccupied(8080) && !IsBackendHealthy())
                 {
                     LogLauncher("WARNING: Port 8080 is currently occupied by an external process. Skipping backend launch.");
+                    ShowStartupErrorDialog("Port 8080 Conflict", "Port 8080 is currently occupied by another application on your system. VERIQ requires Port 8080.");
                     return;
                 }
 
@@ -154,11 +156,13 @@ namespace VeriqLauncher
                 else
                 {
                     LogLauncher("ERROR: Backend failed to reach HEALTHY status after timeout. Browser launch suppressed.");
+                    ShowBackendDiagnosticDialog();
                 }
             }
             catch (Exception ex)
             {
                 LogLauncher("ERROR in startup lifecycle: " + ex.ToString());
+                ShowStartupErrorDialog("VERIQ Startup Exception", ex.Message);
             }
         }
 
@@ -196,8 +200,8 @@ namespace VeriqLauncher
                     using (Process initProc = Process.Start(initInfo))
                     {
                         initProc.WaitForExit(30000);
+                        LogLauncher("initdb.exe finished with ExitCode: " + initProc.ExitCode);
                     }
-                    LogLauncher("Embedded PostgreSQL cluster initialized.");
                 }
 
                 // Start PostgreSQL engine
@@ -212,8 +216,8 @@ namespace VeriqLauncher
                 using (Process pgProc = Process.Start(startPgInfo))
                 {
                     pgProc.WaitForExit(10000);
+                    LogLauncher("pg_ctl.exe start finished with ExitCode: " + pgProc.ExitCode);
                 }
-                LogLauncher("Embedded PostgreSQL engine start command executed.");
 
                 // Wait up to 10 seconds for PostgreSQL TCP port 5432 readiness
                 int pgWait = 0;
@@ -266,28 +270,89 @@ namespace VeriqLauncher
                 jarPath = Path.Combine(baseDir, "veriq-backend", "target", "veriq-backend-1.0.0-SNAPSHOT.jar");
             }
 
-            string javaExe = Path.Combine(baseDir, "jre", "bin", "javaw.exe");
+            string javaExe = Path.Combine(baseDir, "jre", "bin", "java.exe");
             if (!File.Exists(javaExe))
             {
-                javaExe = Path.Combine(baseDir, "jre", "bin", "java.exe");
+                javaExe = Path.Combine(baseDir, "jre", "bin", "javaw.exe");
             }
             if (!File.Exists(javaExe))
             {
-                javaExe = "javaw.exe";
+                javaExe = "java.exe";
             }
 
             LogLauncher("Launching Backend JAR: " + jarPath + " using " + javaExe);
 
+            string backendLogFile = Path.Combine(logsDir, "backend.log");
+
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = javaExe;
-            startInfo.Arguments = "-jar \"" + jarPath + "\"";
+            startInfo.Arguments = "-Dspring.profiles.active=prod -jar \"" + jarPath + "\"";
             startInfo.WorkingDirectory = baseDir;
             startInfo.CreateNoWindow = true;
             startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
-            backendProcess = Process.Start(startInfo);
-            LogLauncher("Backend process initiated with PID: " + (backendProcess != null ? backendProcess.Id.ToString() : "null"));
+            backendProcess = new Process();
+            backendProcess.StartInfo = startInfo;
+
+            backendProcess.OutputDataReceived += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    AppendToLog(backendLogFile, e.Data);
+                }
+            };
+            backendProcess.ErrorDataReceived += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    AppendToLog(backendLogFile, "[ERR] " + e.Data);
+                }
+            };
+
+            backendProcess.Start();
+            backendProcess.BeginOutputReadLine();
+            backendProcess.BeginErrorReadLine();
+
+            LogLauncher("Backend process initiated with PID: " + backendProcess.Id.ToString());
+        }
+
+        private static void ShowBackendDiagnosticDialog()
+        {
+            try
+            {
+                string backendLogFile = Path.Combine(logsDir, "backend.log");
+                string lastLogs = "No backend log output captured.";
+                if (File.Exists(backendLogFile))
+                {
+                    string[] lines = File.ReadAllLines(backendLogFile);
+                    int start = Math.Max(0, lines.Length - 10);
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = start; i < lines.Length; i++)
+                    {
+                        sb.AppendLine(lines[i]);
+                    }
+                    lastLogs = sb.ToString();
+                }
+
+                string message = "VERIQ Platform Backend Service failed to start on Port 8080.\n\n" +
+                                 "Recent Backend Logs:\n" + lastLogs + "\n" +
+                                 "Log Location: " + backendLogFile;
+
+                MessageBox.Show(message, "VERIQ Platform Startup Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch { }
+        }
+
+        private static void ShowStartupErrorDialog(string title, string details)
+        {
+            try
+            {
+                MessageBox.Show("VERIQ Startup Alert: " + title + "\n\nDetails: " + details + "\n\nLogs: " + Path.Combine(logsDir, "launcher.log"), "VERIQ Platform Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            catch { }
         }
 
         private static bool IsPortOccupied(int port)
@@ -326,7 +391,7 @@ namespace VeriqLauncher
                     HttpWebRequest req2 = (HttpWebRequest)WebRequest.Create(targetUrl);
                     req2.Method = "GET";
                     req2.Timeout = 1200;
-                    using (HttpWebResponse resp2 = (HttpWebResponse)request.GetResponse())
+                    using (HttpWebResponse resp2 = (HttpWebResponse)req2.GetResponse())
                     {
                         return resp2.StatusCode == HttpStatusCode.OK;
                     }
@@ -416,6 +481,16 @@ namespace VeriqLauncher
                 string logFile = Path.Combine(logsDir, "launcher.log");
                 string line = "[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "] " + message + Environment.NewLine;
                 File.AppendAllText(logFile, line);
+            }
+            catch { }
+        }
+
+        private static void AppendToLog(string path, string message)
+        {
+            try
+            {
+                string line = "[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "] " + message + Environment.NewLine;
+                File.AppendAllText(path, line);
             }
             catch { }
         }

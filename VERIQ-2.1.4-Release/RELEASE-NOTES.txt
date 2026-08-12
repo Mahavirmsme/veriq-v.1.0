@@ -1,0 +1,41 @@
+====================================================================
+VERIQ — Engineering Decision Intelligence Platform
+RELEASE NOTES — VERSION 2.1.4 (TRANSPARENT DIAGNOSTIC & LOGGING HARDENING)
+====================================================================
+
+PRODUCT IDENTITY:
+Product: VERIQ Infrastructure Intelligence Platform
+Version: 2.1.4
+Release Type: External Computer Standalone Windows Distribution Package
+Package Artifact: VERIQ-2.1.4-Setup.exe
+
+DESCRIPTION:
+VERIQ 2.1.4 provides transparent startup diagnostic logging for standalone Windows desktop deployments. It captures real-time backend process output into %LOCALAPPDATA%\VERIQ Platform\logs\backend.log, logs PostgreSQL initdb/pg_ctl exit codes into launcher.log, and displays interactive Windows error dialogs with log extracts if backend startup encounters any host system constraints.
+
+TRANSPARENCY & HARDENING IN VERIQ 2.1.4:
+1. Real-Time Backend Console Redirection:
+   - Uses java.exe with redirected stdout and stderr appended live to %LOCALAPPDATA%\VERIQ Platform\logs\backend.log.
+   - Captures 100% of Spring Boot initialization, HikariCP pool, and Flyway migration logs.
+
+2. Diagnostic Error Dialogs:
+   - If backend startup times out or exits prematurely, veriq-launcher.exe suppresses invalid browser navigation and displays an informative Windows Error Dialog containing log tail details and exact log file paths.
+
+3. Dynamic Per-User PostgreSQL Cluster Path:
+   - GetPgDataPath() resolves pgData to %LOCALAPPDATA%\VERIQ Platform\postgresql\data when installed under Program Files (x86).
+
+4. Explicit Loopback Host Arguments:
+   - Passes -h 127.0.0.1 -p 5432 -U postgres veriq_db arguments to createdb.exe.
+
+5. Dual Desktop & Start Menu Shortcuts:
+   - Configured both {userdesktop} and {commondesktop} shortcuts in Inno Setup [Icons] with explicit WorkingDir: "{app}".
+
+INSTALLATION & UPGRADE INSTRUCTIONS:
+1. Transfer VERIQ-2.1.4-Setup.exe to target Windows desktop machine.
+2. Run VERIQ-2.1.4-Setup.exe.
+3. Launch VERIQ Platform via the Desktop shortcut.
+
+REQUIREMENTS:
+- OS: 64-bit Windows 10/11 or Windows Server 2016+
+- Port: 8080 (backend & UI)
+- External Dependencies: None (embedded JRE and embedded PostgreSQL included)
+====================================================================

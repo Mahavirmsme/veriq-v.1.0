@@ -1,11 +1,11 @@
 ; =====================================================================
-; VERIQ Infrastructure Intelligence Platform 2.1.3 Inno Setup Script
+; VERIQ Infrastructure Intelligence Platform 2.1.4 Inno Setup Script
 ; Official Standalone Enterprise Offline Distribution Package
 ; =====================================================================
 
 #define MyAppName "VERIQ Infrastructure Intelligence Platform"
 #define MyAppShortName "VERIQ Platform"
-#define MyAppVersion "2.1.3"
+#define MyAppVersion "2.1.4"
 #define MyAppPublisher "VERIQ Systems"
 #define MyAppURL "http://localhost:8080"
 #define MyAppExeName "veriq-launcher.exe"
@@ -21,14 +21,14 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonpf}\VERIQ Platform
 DefaultGroupName={#MyAppShortName}
 DisableProgramGroupPage=yes
-OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.3-Release
-OutputBaseFilename=VERIQ-2.1.3-Setup
+OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.4-Release
+OutputBaseFilename=VERIQ-2.1.4-Setup
 Compression=lzma2/max
 SolidCompression=no
 WizardStyle=modern
 PrivilegesRequired=admin
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
-AppMutex=VERIQ_PLATFORM_STANDALONE_LAUNCHER_213,VERIQ_PLATFORM_STANDALONE_LAUNCHER_212,VERIQ_PLATFORM_STANDALONE_LAUNCHER_211,VERIQ_PLATFORM_STANDALONE_LAUNCHER_210
+AppMutex=VERIQ_PLATFORM_STANDALONE_LAUNCHER_214,VERIQ_PLATFORM_STANDALONE_LAUNCHER_213,VERIQ_PLATFORM_STANDALONE_LAUNCHER_212,VERIQ_PLATFORM_STANDALONE_LAUNCHER_211,VERIQ_PLATFORM_STANDALONE_LAUNCHER_210
 CloseApplications=yes
 CloseApplicationsFilter=*veriq-launcher.exe*
 
