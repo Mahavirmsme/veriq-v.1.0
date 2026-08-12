@@ -1,11 +1,11 @@
 ; =====================================================================
-; VERIQ Infrastructure Intelligence Platform 2.1.0 Inno Setup Script
+; VERIQ Infrastructure Intelligence Platform 2.1.1 Inno Setup Script
 ; Official Standalone Enterprise Offline Distribution Package
 ; =====================================================================
 
 #define MyAppName "VERIQ Infrastructure Intelligence Platform"
 #define MyAppShortName "VERIQ Platform"
-#define MyAppVersion "2.1.0"
+#define MyAppVersion "2.1.1"
 #define MyAppPublisher "VERIQ Systems"
 #define MyAppURL "http://localhost:8080"
 #define MyAppExeName "veriq-launcher.exe"
@@ -21,8 +21,8 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonpf}\VERIQ Platform
 DefaultGroupName={#MyAppShortName}
 DisableProgramGroupPage=yes
-OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.0-Release
-OutputBaseFilename=VERIQ-2.1.0-Setup
+OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.1-Release
+OutputBaseFilename=VERIQ-2.1.1-Setup
 Compression=lzma2/max
 SolidCompression=no
 WizardStyle=modern
@@ -44,8 +44,9 @@ Source: "C:\Users\HP\.gemini\antigravity\scratch\veriq\postgresql\*"; DestDir: "
 Source: "C:\Users\HP\.gemini\antigravity\scratch\veriq\config\*"; DestDir: "{app}\config"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
-Name: "{app}\runtime"
-Name: "{app}\logs"
+Name: "{app}\runtime"; Permissions: users-modify
+Name: "{app}\logs"; Permissions: users-modify
+Name: "{app}\postgresql\data"; Permissions: users-modify
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0

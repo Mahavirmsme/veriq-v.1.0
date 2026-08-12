@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -12,7 +13,7 @@ namespace VeriqLauncher
     {
         private static Process backendProcess = null;
         private static NotifyIcon trayIcon = null;
-        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.0";
+        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.1";
         private static string targetUrl = "http://localhost:8080";
         private static string baseDir = "";
         private static string logsDir = "";
@@ -24,14 +25,30 @@ namespace VeriqLauncher
             Application.SetCompatibleTextRenderingDefault(false);
 
             baseDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\');
-            logsDir = Path.Combine(baseDir, "logs");
-            Directory.CreateDirectory(logsDir);
-            Directory.CreateDirectory(Path.Combine(baseDir, "runtime"));
+            
+            // Resolve writable logs and runtime directory (fallback to %LOCALAPPDATA% if baseDir is protected)
+            try
+            {
+                logsDir = Path.Combine(baseDir, "logs");
+                Directory.CreateDirectory(logsDir);
+                Directory.CreateDirectory(Path.Combine(baseDir, "runtime"));
+                string testFile = Path.Combine(logsDir, ".write_test");
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
+            }
+            catch
+            {
+                string userAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string veriqData = Path.Combine(userAppData, "VERIQ Platform");
+                logsDir = Path.Combine(veriqData, "logs");
+                Directory.CreateDirectory(logsDir);
+                Directory.CreateDirectory(Path.Combine(veriqData, "runtime"));
+            }
 
-            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.0 STARTED ==========");
+            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.1 STARTED ==========");
 
             bool createdNew;
-            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_210", out createdNew))
+            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_211", out createdNew))
             {
                 if (!createdNew)
                 {
@@ -73,13 +90,20 @@ namespace VeriqLauncher
                 // 1. Start Embedded PostgreSQL Database
                 StartEmbeddedPostgreSQL();
 
-                // 2. Start Spring Boot Backend
+                // 2. Check Port 8080 status before launching backend
+                if (IsPortOccupied(8080) && !IsBackendHealthy())
+                {
+                    LogLauncher("WARNING: Port 8080 is currently occupied by an external process. Skipping backend launch.");
+                    return;
+                }
+
+                // 3. Start Spring Boot Backend if not already healthy
                 if (!IsBackendHealthy())
                 {
                     StartBackendProcess();
                 }
 
-                // 3. Poll Backend Health with 90-second timeout
+                // 4. Poll Backend Health with 90-second timeout
                 LogLauncher("Polling backend health status on port 8080...");
                 int attempts = 0;
                 bool isUp = false;
@@ -90,6 +114,14 @@ namespace VeriqLauncher
                         isUp = true;
                         break;
                     }
+
+                    // Exit early if backend process crashed
+                    if (backendProcess != null && backendProcess.HasExited)
+                    {
+                        LogLauncher("ERROR: Backend process exited prematurely with code: " + backendProcess.ExitCode);
+                        break;
+                    }
+
                     Thread.Sleep(1000);
                     attempts++;
                 }
@@ -101,8 +133,7 @@ namespace VeriqLauncher
                 }
                 else
                 {
-                    LogLauncher("WARNING: Backend health check timed out after 90s. Opening browser anyway.");
-                    OpenBrowser(targetUrl);
+                    LogLauncher("ERROR: Backend failed to reach HEALTHY status after timeout. Browser launch suppressed.");
                 }
             }
             catch (Exception ex)
@@ -119,6 +150,7 @@ namespace VeriqLauncher
                 string pgData = Path.Combine(baseDir, "postgresql", "data");
                 string pgCtl = Path.Combine(pgBin, "pg_ctl.exe");
                 string initDb = Path.Combine(pgBin, "initdb.exe");
+                string createDb = Path.Combine(pgBin, "createdb.exe");
                 string dbLog = Path.Combine(logsDir, "database.log");
 
                 if (!File.Exists(pgCtl))
@@ -129,6 +161,7 @@ namespace VeriqLauncher
 
                 Directory.CreateDirectory(pgData);
 
+                // Initialize cluster if PG_VERSION is missing
                 if (!File.Exists(Path.Combine(pgData, "PG_VERSION")))
                 {
                     LogLauncher("Initializing embedded PostgreSQL cluster...");
@@ -146,6 +179,7 @@ namespace VeriqLauncher
                     LogLauncher("Embedded PostgreSQL cluster initialized.");
                 }
 
+                // Start PostgreSQL engine
                 LogLauncher("Starting embedded PostgreSQL engine...");
                 ProcessStartInfo startPgInfo = new ProcessStartInfo();
                 startPgInfo.FileName = pgCtl;
@@ -159,6 +193,39 @@ namespace VeriqLauncher
                     pgProc.WaitForExit(10000);
                 }
                 LogLauncher("Embedded PostgreSQL engine start command executed.");
+
+                // Wait up to 10 seconds for PostgreSQL TCP port 5432 readiness
+                int pgWait = 0;
+                while (pgWait < 10 && !IsPortOccupied(5432))
+                {
+                    Thread.Sleep(1000);
+                    pgWait++;
+                }
+
+                // Ensure database 'veriq_db' exists (Create ONLY if missing, preserve if existing)
+                if (File.Exists(createDb))
+                {
+                    LogLauncher("Ensuring database 'veriq_db' exists...");
+                    ProcessStartInfo createDbInfo = new ProcessStartInfo();
+                    createDbInfo.FileName = createDb;
+                    createDbInfo.Arguments = "-U postgres veriq_db";
+                    createDbInfo.CreateNoWindow = true;
+                    createDbInfo.UseShellExecute = false;
+                    createDbInfo.WindowStyle = ProcessWindowStyle.Hidden;
+
+                    using (Process createDbProc = Process.Start(createDbInfo))
+                    {
+                        createDbProc.WaitForExit(15000);
+                        if (createDbProc.ExitCode == 0)
+                        {
+                            LogLauncher("Database 'veriq_db' created successfully.");
+                        }
+                        else
+                        {
+                            LogLauncher("Database 'veriq_db' check completed (ExitCode: " + createDbProc.ExitCode + "). Preserving database.");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -200,6 +267,23 @@ namespace VeriqLauncher
 
             backendProcess = Process.Start(startInfo);
             LogLauncher("Backend process initiated with PID: " + (backendProcess != null ? backendProcess.Id.ToString() : "null"));
+        }
+
+        private static bool IsPortOccupied(int port)
+        {
+            try
+            {
+                using (TcpClient tcpClient = new TcpClient())
+                {
+                    IAsyncResult ar = tcpClient.BeginConnect("127.0.0.1", port, null, null);
+                    bool success = ar.AsyncWaitHandle.WaitOne(500);
+                    return success && tcpClient.Connected;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static bool IsBackendHealthy()

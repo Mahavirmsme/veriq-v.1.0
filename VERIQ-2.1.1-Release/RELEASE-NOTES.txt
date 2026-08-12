@@ -1,0 +1,39 @@
+====================================================================
+VERIQ — Engineering Decision Intelligence Platform
+RELEASE NOTES — VERSION 2.1.1 (DEPLOYMENT BOOTSTRAP HARDENING)
+====================================================================
+
+PRODUCT IDENTITY:
+Product: VERIQ Infrastructure Intelligence Platform
+Version: 2.1.1
+Release Type: External Computer Standalone Windows Distribution Package
+Package Artifact: VERIQ-2.1.1-Setup.exe
+
+DESCRIPTION:
+VERIQ 2.1.1 provides critical deployment hardening for standalone Windows desktop installations. This release automatically handles fresh PostgreSQL database bootstrap (veriq_db creation), per-user writable application logging and runtime directory resolution (%LOCALAPPDATA%\VERIQ Platform fallback), and port 8080 collision safety.
+
+DEPLOYMENT HARDENING IN VERIQ 2.1.1:
+1. Automatic Database Bootstrap:
+   - When installed on a fresh machine with a new PostgreSQL cluster, veriq-launcher.exe automatically executes 'createdb.exe -U postgres veriq_db'.
+   - Prevents 'FATAL: database "veriq_db" does not exist' startup failure.
+   - Preserves existing veriq_db databases on upgraded/re-run installations.
+
+2. Per-User Permission Safety:
+   - Installer (veriq-setup.iss) grants users-modify rights on {app}\logs, {app}\runtime, and {app}\postgresql\data.
+   - Launcher automatically falls back to %LOCALAPPDATA%\VERIQ Platform for logs and runtime files if base installation directory is write-protected.
+
+3. Port 8080 & Process Safety:
+   - Checks TCP port 8080 readiness and suppresses blind browser launch if port is blocked or backend failed to start.
+   - Early exit detection if backend process terminates prematurely.
+
+INSTALLATION INSTRUCTIONS:
+1. Transfer VERIQ-2.1.1-Setup.exe to target Windows desktop machine.
+2. Run VERIQ-2.1.1-Setup.exe.
+3. Launch VERIQ Platform via Desktop or Start Menu shortcut (veriq-launcher.exe).
+4. Default web browser opens to http://localhost:8080/ops/dashboard once backend is healthy.
+
+REQUIREMENTS:
+- OS: 64-bit Windows 10/11 or Windows Server 2016+
+- Port: 8080 (backend & UI)
+- External Dependencies: None (embedded JRE and embedded PostgreSQL included)
+====================================================================
