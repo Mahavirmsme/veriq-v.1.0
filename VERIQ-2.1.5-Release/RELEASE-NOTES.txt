@@ -1,0 +1,42 @@
+====================================================================
+VERIQ — Engineering Decision Intelligence Platform
+RELEASE NOTES — VERSION 2.1.5 (FLYWAY IDEMPOTENCY & SCHEMA RECOVERY HARDENING)
+====================================================================
+
+PRODUCT IDENTITY:
+Product: VERIQ Infrastructure Intelligence Platform
+Version: 2.1.5
+Release Type: External Computer Standalone Windows Distribution Package
+Package Artifact: VERIQ-2.1.5-Setup.exe
+
+DESCRIPTION:
+VERIQ 2.1.5 delivers critical Flyway migration idempotency hardening for standalone Windows desktop installations and upgrades. It makes DDL constraint definitions in V34__add_v34_engineering_specification_and_geometry_fields.sql 100% idempotent with pg_constraint existence checks, preventing Flyway SQL execution failures when upgrading over pre-existing database instances.
+
+RELEASE HARDENING IN VERIQ 2.1.5:
+1. Idempotent PostgreSQL Migration (V34):
+   - Wrapped ALTER TABLE ADD CONSTRAINT statements inside PostgreSQL DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ...) THEN ... END IF; END $$; blocks.
+   - Prevents 'ERROR: constraint "chk_seepage_path_length" for relation "node_engineering_geometry" already exists' failures on upgraded/re-run databases.
+
+2. Transparent Startup Diagnostics (backend.log):
+   - Real-time output redirection from java.exe to %LOCALAPPDATA%\VERIQ Platform\logs\backend.log.
+   - Displays interactive error dialogs with diagnostic summaries if backend initialization encounters host system constraints.
+
+3. Dynamic Per-User PostgreSQL Cluster Path:
+   - GetPgDataPath() resolves pgData to %LOCALAPPDATA%\VERIQ Platform\postgresql\data when installed under Program Files (x86).
+
+4. Explicit Loopback Host Arguments:
+   - Passes -h 127.0.0.1 -p 5432 -U postgres veriq_db arguments to createdb.exe.
+
+5. Dual Desktop & Start Menu Shortcuts:
+   - Configured both {userdesktop} and {commondesktop} shortcuts in Inno Setup [Icons] with explicit WorkingDir: "{app}".
+
+INSTALLATION & UPGRADE INSTRUCTIONS:
+1. Transfer VERIQ-2.1.5-Setup.exe to target Windows desktop machine.
+2. Run VERIQ-2.1.5-Setup.exe (works on fresh installations or directly over existing installations).
+3. Launch VERIQ Platform via the Desktop shortcut.
+
+REQUIREMENTS:
+- OS: 64-bit Windows 10/11 or Windows Server 2016+
+- Port: 8080 (backend & UI)
+- External Dependencies: None (embedded JRE and embedded PostgreSQL included)
+====================================================================
