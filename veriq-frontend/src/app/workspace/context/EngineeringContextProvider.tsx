@@ -8,6 +8,8 @@ import { deploymentZoneService, DeploymentZone } from '../../../services/deploym
 import { engineeringNodeService, EngineeringNode } from '../../../services/engineeringNodeService';
 import { runtimeSensorService, RuntimeSensorRecord } from '../../../services/runtimeSensorService';
 
+import { commandCenterService, NodeStateDTO } from '../../../services/commandCenterService';
+
 export const DEFAULT_ENGINEERING_OBJECT: EngineeringObject = {
   id: 'asset-kosi-left-embankment',
   name: 'Kosi Left Flood Embankment',
@@ -34,25 +36,51 @@ export const EngineeringContextProvider: React.FC<{ children: React.ReactNode }>
   const [selectedEngineeringObject, setSelectedEngineeringObject] = useState<EngineeringObject>(DEFAULT_ENGINEERING_OBJECT);
 
   // Helper to fetch nodes & runtime sensors for a given zone ID without duplication
-  const fetchNodesForZone = useCallback(async (zoneId: string) => {
-    if (!zoneId) {
+  const fetchNodesForZone = useCallback(async (zoneId: string, scopeZones?: DeploymentZone[]) => {
+    if (!zoneId && (!scopeZones || scopeZones.length === 0)) {
       setContextNodes([]);
       setContextSensors([]);
       return;
     }
     try {
-      const [fetchedNodes, allSensors] = await Promise.all([
-        engineeringNodeService.getByDeploymentZoneId(zoneId, true).catch(() => []),
-        runtimeSensorService.getAll().catch(() => [])
+      const targetZoneIds = (scopeZones && scopeZones.length > 0)
+        ? (scopeZones.map(z => z.id).filter(Boolean) as string[])
+        : [zoneId];
+
+      const [fetchedNodesArray, allSensors, liveNodeStates] = await Promise.all([
+        Promise.all(targetZoneIds.map(id => engineeringNodeService.getByDeploymentZoneId(id, true).catch(() => []))),
+        runtimeSensorService.getAll().catch(() => []),
+        commandCenterService.getNodeStates().catch(() => [])
       ]);
 
-      if (fetchedNodes && fetchedNodes.length > 0) {
-        // Deduplicate nodes by unique nodeCode or id
+      const flatNodes = fetchedNodesArray.flat();
+
+      if (flatNodes && flatNodes.length > 0) {
+        // Build live node state lookup maps keyed by engineeringNodeId and nodeCode
+        const liveStateByNodeId = new Map<string, NodeStateDTO>();
+        const liveStateByCode = new Map<string, NodeStateDTO>();
+        (liveNodeStates || []).forEach(ls => {
+          if (ls.engineeringNodeId) liveStateByNodeId.set(ls.engineeringNodeId, ls);
+          if (ls.nodeCode) liveStateByCode.set(ls.nodeCode, ls);
+        });
+
+        // Deduplicate nodes by unique nodeCode or id and merge live states
         const map = new Map<string, EngineeringNode>();
-        fetchedNodes.forEach(n => {
+        flatNodes.forEach(n => {
           const key = n.id || n.nodeCode;
           if (key && !map.has(key)) {
-            map.set(key, n);
+            const liveState = (n.id ? liveStateByNodeId.get(n.id) : null) || (n.nodeCode ? liveStateByCode.get(n.nodeCode) : null);
+            const mergedNode = {
+              ...n,
+              currentHealth: liveState?.currentHealth || (n as any).currentHealth || 'STABLE',
+              observationCount: liveState?.observationCount,
+              observations: liveState?.observations,
+              evaluationTimestamp: liveState?.evaluationTimestamp,
+              lastAssessment: liveState?.observations && liveState.observations.length > 0
+                ? `${liveState.observations[0].sensorCode} · ${liveState.observations[0].measuredValue} ${liveState.observations[0].unit || ''}`
+                : undefined
+            };
+            map.set(key, mergedNode as EngineeringNode);
           }
         });
         const finalNodes = Array.from(map.values());

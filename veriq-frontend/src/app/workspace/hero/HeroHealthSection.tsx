@@ -10,12 +10,12 @@ interface HeroHealthSectionProps {
 }
 
 export const HeroHealthSection: React.FC<HeroHealthSectionProps> = ({
-  factorOfSafety = '1.85 (FoS)',
-  riskLevel = 'NORMAL (LOW)',
-  structuralHealth = '98.4%',
-  sensorCoverage = '100% Active',
-  reliabilityIndex = 'β = 4.2',
-  trendIndicator = 'STABLE (±0.01)'
+  factorOfSafety = 'N/A',
+  riskLevel = 'N/A',
+  structuralHealth = 'N/A',
+  sensorCoverage = 'N/A',
+  reliabilityIndex = 'N/A',
+  trendIndicator = 'N/A'
 }) => {
   const healthIndicators = [
     { label: 'Factor of Safety (FoS)', value: factorOfSafety, color: '#059669' },

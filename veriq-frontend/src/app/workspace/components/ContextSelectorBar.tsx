@@ -157,6 +157,26 @@ export const ContextSelectorBar: React.FC = () => {
           )}
         </select>
       </div>
+
+      {/* 4. LIVE RUNTIME INDICATOR BADGE */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '3px 8px',
+        borderRadius: '4px',
+        background: '#F0FDF4',
+        border: '1px solid #86EFAC',
+        color: '#16A34A',
+        fontSize: '10px',
+        fontWeight: 800,
+        fontFamily: 'monospace',
+        letterSpacing: '0.04em'
+      }}>
+        <span>●</span>
+        <span>LIVE</span>
+      </div>
     </div>
   );
 };
+

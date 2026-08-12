@@ -1,0 +1,34 @@
+====================================================================
+VERIQ — Engineering Decision Intelligence Platform
+RELEASE NOTES — VERSION 2.1.0
+====================================================================
+
+PRODUCT IDENTITY:
+Product: VERIQ Infrastructure Intelligence Platform
+Version: 2.1.0
+Release Type: External Computer Standalone Windows Distribution Package
+Package Artifact: VERIQ-2.1.0-Setup.exe
+
+DESCRIPTION:
+VERIQ 2.1.0 is an enterprise engineering decision intelligence platform for structural, hydraulic, and embankment risk evaluation. This release provides a zero-dependency, self-contained Windows desktop distribution package containing embedded JRE, embedded PostgreSQL database engine, Spring Boot backend service, and React Operations Command Center UI.
+
+KEY CAPABILITIES IN VERIQ 2.1.0:
+- Single-Viewport Desktop Operations Command Center (/ops/dashboard)
+- 7 Human-Readable Failure Mechanism Assessments
+- EKP-001 Hydrodynamic Overtopping & Freeboard Deficit Assessment Engine (Still-Water Baseline Model F = Zcrest - Zwater)
+- Authoritative Engineering Baseline & Canonical Unit Propagation (SensorPackage -> Baseline -> Telemetry -> Observation -> Snapshot -> Mechanism Engine)
+- Strict Zero-Fabrication Governance: Truthful UNEVALUATED status rendering when engineering specification inputs are unconfigured
+- Compact 3-Column Visual Layout (System Status, Engineering State, Engineering Intelligence)
+
+INSTALLATION INSTRUCTIONS:
+1. Transfer VERIQ-2.1.0-Setup.exe to target Windows desktop machine.
+2. Run VERIQ-2.1.0-Setup.exe (requires Administrator privileges for standard installation).
+3. Follow installation wizard steps.
+4. Launch VERIQ Platform via Desktop or Start Menu shortcut (veriq-launcher.exe).
+5. The launcher will automatically start embedded PostgreSQL, backend services, poll health status, and open default web browser to http://localhost:8080/ops/dashboard.
+
+REQUIREMENTS:
+- OS: 64-bit Windows 10/11 or Windows Server 2016+
+- Port: 8080 (backend & UI)
+- External Dependencies: None (embedded JRE and embedded PostgreSQL included)
+====================================================================

@@ -36,10 +36,17 @@ public class RuntimeSensorRegistryServiceImpl implements RuntimeSensorRegistrySe
     @Override
     @Transactional(readOnly = true)
     public List<RuntimeSensorRegistryResponseDTO> getAllRuntimeSensors() {
-        return runtimeSensorRepository.findAll().stream()
-                .filter(sensor -> sensor.getCommissioningRecord() != null && "COMMISSIONED".equalsIgnoreCase(sensor.getCommissioningRecord().getStatus()))
-                .map(runtimeSensorRegistryMapper::toDto)
-                .collect(Collectors.toList());
+        java.util.Map<String, RuntimeSensorRegistryResponseDTO> distinctMap = new java.util.LinkedHashMap<>();
+        List<RuntimeSensor> sensors = runtimeSensorRepository.findAll();
+        for (RuntimeSensor sensor : sensors) {
+            if (sensor.getCommissioningRecord() != null && "COMMISSIONED".equalsIgnoreCase(sensor.getCommissioningRecord().getStatus())) {
+                RuntimeSensorRegistryResponseDTO dto = runtimeSensorRegistryMapper.toDto(sensor);
+                if (dto != null && dto.getSensorCode() != null) {
+                    distinctMap.putIfAbsent(dto.getSensorCode(), dto);
+                }
+            }
+        }
+        return new java.util.ArrayList<>(distinctMap.values());
     }
 
     @Override

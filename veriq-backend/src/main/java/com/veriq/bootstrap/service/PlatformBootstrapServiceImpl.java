@@ -5,6 +5,14 @@ import com.veriq.bootstrap.dto.BootstrapStatusDTO;
 import com.veriq.bootstrap.entity.PlatformBootstrapRecord;
 import com.veriq.bootstrap.repository.PlatformBootstrapRepository;
 import com.veriq.common.exception.BusinessRuleViolationException;
+import com.veriq.organization.entity.Organization;
+import com.veriq.organization.repository.OrganizationRepository;
+import com.veriq.role.entity.Role;
+import com.veriq.role.repository.RoleRepository;
+import com.veriq.user.entity.User;
+import com.veriq.user.repository.UserRepository;
+import com.veriq.userrole.entity.UserRole;
+import com.veriq.userrole.repository.UserRoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +24,21 @@ import java.util.Optional;
 public class PlatformBootstrapServiceImpl implements PlatformBootstrapService {
 
     private final PlatformBootstrapRepository platformBootstrapRepository;
+    private final OrganizationRepository organizationRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserRoleRepository userRoleRepository;
 
-    public PlatformBootstrapServiceImpl(PlatformBootstrapRepository platformBootstrapRepository) {
+    public PlatformBootstrapServiceImpl(PlatformBootstrapRepository platformBootstrapRepository,
+                                         OrganizationRepository organizationRepository,
+                                         UserRepository userRepository,
+                                         RoleRepository roleRepository,
+                                         UserRoleRepository userRoleRepository) {
         this.platformBootstrapRepository = platformBootstrapRepository;
+        this.organizationRepository = organizationRepository;
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.userRoleRepository = userRoleRepository;
     }
 
     @Override
@@ -48,14 +68,57 @@ public class PlatformBootstrapServiceImpl implements PlatformBootstrapService {
             throw new BusinessRuleViolationException("PLATFORM_ALREADY_INITIALIZED", "Platform initialization has already been executed.");
         }
 
+        // 1. Create and persist Organization entity
+        String orgName = request.getOrganizationName() != null ? request.getOrganizationName().trim() : "Default Organization";
+        String orgCode = "ORG-" + Math.abs(orgName.hashCode() % 10000);
+
+        Organization org = organizationRepository.findAll().stream().findFirst().orElseGet(Organization::new);
+        if (org.getName() == null) {
+            org.setName(orgName);
+            org.setCode(orgCode);
+            org.setOrganizationType("GOVERNMENT_DEPARTMENT");
+            org.setStatus("ACTIVE");
+            org.setContactPerson(request.getAdminName() != null ? request.getAdminName().trim() : "Administrator");
+            org.setContactEmail(request.getAdminEmail() != null ? request.getAdminEmail().trim().toLowerCase() : "admin@domain.com");
+            org.setContactMobile("+91-0000000000");
+            org = organizationRepository.save(org);
+        }
+
+        // 2. Create and persist Administrator User entity in users table
+        String adminEmail = request.getAdminEmail() != null ? request.getAdminEmail().trim().toLowerCase() : "";
+        String adminName = request.getAdminName() != null ? request.getAdminName().trim() : "Admin User";
+        String[] nameParts = adminName.split("\\s+", 2);
+        String firstName = nameParts[0];
+        String lastName = nameParts.length > 1 ? nameParts[1] : "";
+
+        User user = userRepository.findByEmail(adminEmail).orElseGet(User::new);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(adminEmail);
+        user.setPasswordHash("SHA256:" + Integer.toHexString(request.getPassword().hashCode()));
+        user.setOrganizationId(org.getId());
+        user.setStatus("ACTIVE");
+        User savedUser = userRepository.save(user);
+
+        // 3. Assign Default System Role (ADMIN)
+        Optional<Role> adminRoleOpt = roleRepository.findByRoleCode("ADMIN");
+        if (adminRoleOpt.isPresent()) {
+            Role adminRole = adminRoleOpt.get();
+            if (!userRoleRepository.existsByUserIdAndRoleId(savedUser.getId(), adminRole.getId())) {
+                UserRole userRole = new UserRole(savedUser, adminRole);
+                userRoleRepository.save(userRole);
+            }
+        }
+
+        // 4. Update PlatformBootstrapRecord
         PlatformBootstrapRecord record = existing.orElseGet(PlatformBootstrapRecord::new);
         record.setInitialized(true);
         record.setPlatformName(request.getPlatformName());
-        record.setOrganizationName(request.getOrganizationName());
+        record.setOrganizationName(orgName);
         record.setDeploymentEnvironment(request.getDeploymentEnvironment() != null ? request.getDeploymentEnvironment() : "Production");
-        record.setAdminName(request.getAdminName());
-        record.setAdminEmail(request.getAdminEmail());
-        record.setAdminPasswordHash("SHA256:" + Integer.toHexString(request.getPassword().hashCode())); // Placeholder hash
+        record.setAdminName(adminName);
+        record.setAdminEmail(adminEmail);
+        record.setAdminPasswordHash(savedUser.getPasswordHash());
         record.setInitializedAt(OffsetDateTime.now());
 
         PlatformBootstrapRecord saved = platformBootstrapRepository.save(record);

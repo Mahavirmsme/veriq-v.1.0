@@ -133,28 +133,15 @@ export const assetService = {
     try {
       const params = projectId ? { projectId } : undefined;
       const response = await apiClient.get<ApiResponse<Asset[]>>('/assets', { params });
-      const serverAssets = response.data.data || [];
-      
-      // Ensure Point Assets (e.g. Bridge 27) are available if server list contains only linear assets
-      const pointAssetsInFallback = FALLBACK_SEED_ASSETS.filter(fa => String(fa.assetNature).toUpperCase() === 'POINT');
-      const missingPointAssets = pointAssetsInFallback.filter(fa => !serverAssets.some(sa => sa.id === fa.id || sa.assetCode === fa.assetCode));
-
-      if (serverAssets.length > 0) {
-        return [...serverAssets, ...missingPointAssets];
-      }
-      return FALLBACK_SEED_ASSETS;
+      return response.data.data || [];
     } catch {
-      return FALLBACK_SEED_ASSETS;
+      return [];
     }
   },
 
   getById: async (id: string): Promise<Asset> => {
-    try {
-      const response = await apiClient.get<ApiResponse<Asset>>(`/assets/${id}`);
-      return response.data.data;
-    } catch {
-      return FALLBACK_SEED_ASSETS.find(a => a.id === id) || FALLBACK_SEED_ASSETS[0];
-    }
+    const response = await apiClient.get<ApiResponse<Asset>>(`/assets/${id}`);
+    return response.data.data;
   },
 
   create: async (payload: CreateAssetPayload): Promise<Asset> => {

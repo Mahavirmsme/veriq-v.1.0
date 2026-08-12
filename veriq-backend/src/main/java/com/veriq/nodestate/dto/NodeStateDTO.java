@@ -2,7 +2,10 @@ package com.veriq.nodestate.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import com.veriq.mechanism.dto.MechanismAssessmentDTO;
+
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class NodeStateDTO {
@@ -15,6 +18,8 @@ public class NodeStateDTO {
     private String previousHealth;
     private String evaluationVersion;
     private Integer observationCount;
+    private List<MechanismAssessmentDTO> mechanisms;
+    private List<com.veriq.engineeringengine.dto.EngineeringObservationDTO> observations;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private OffsetDateTime evaluationTimestamp;
@@ -123,5 +128,21 @@ public class NodeStateDTO {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<MechanismAssessmentDTO> getMechanisms() {
+        return mechanisms;
+    }
+
+    public void setMechanisms(List<MechanismAssessmentDTO> mechanisms) {
+        this.mechanisms = mechanisms;
+    }
+
+    public List<com.veriq.engineeringengine.dto.EngineeringObservationDTO> getObservations() {
+        return observations;
+    }
+
+    public void setObservations(List<com.veriq.engineeringengine.dto.EngineeringObservationDTO> observations) {
+        this.observations = observations;
     }
 }

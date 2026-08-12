@@ -177,21 +177,24 @@ export const OperationsNodeExplorerPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {(filteredNodes.length > 0 ? filteredNodes : [
-                  { id: '1', nodeCode: 'ND-001', currentHealth: 'STABLE', observationCount: 14, healthSource: 'PRIMARY_TELEMETRY' },
-                  { id: '2', nodeCode: 'ND-002', currentHealth: 'STABLE', observationCount: 18, healthSource: 'PRIMARY_TELEMETRY' },
-                  { id: '3', nodeCode: 'ND-003', currentHealth: 'WARNING', observationCount: 9, healthSource: 'EVALUATION_RULE' },
-                  { id: '4', nodeCode: 'ND-004', currentHealth: 'CRITICAL', observationCount: 22, healthSource: 'EVALUATION_RULE' }
-                ]).map((node, idx) => {
-                  const isCritical = node.currentHealth === 'CRITICAL';
-                  const isWarning = node.currentHealth === 'WARNING';
-                  const isSelected = selectedNodeDetails?.id === node.id;
+                {filteredNodes.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                      <div style={{ fontWeight: 600, color: '#475569', marginBottom: '4px' }}>No persisted engineering nodes available</div>
+                      <div style={{ fontSize: '11px', color: '#94A3B8' }}>Select a deployment zone with persisted runtime nodes or complete commissioning to evaluate live node states.</div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredNodes.map((node, idx) => {
+                    const isCritical = node.currentHealth === 'CRITICAL';
+                    const isWarning = node.currentHealth === 'WARNING';
+                    const isSelected = selectedNodeDetails?.id === node.id;
 
-                  const statusSymbol = isCritical ? '●' : isWarning ? '▲' : '✓';
-                  const statusColor = isCritical ? '#DC2626' : isWarning ? '#D97706' : '#16A34A';
-                  const statusBg = isCritical ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#F0FDF4';
-                  const statusBorder = isCritical ? '#FCA5A5' : isWarning ? '#FDE68A' : '#86EFAC';
-                  const fosMetric = isCritical ? '1.18' : isWarning ? '1.35' : '1.85';
+                    const statusSymbol = isCritical ? '●' : isWarning ? '▲' : '✓';
+                    const statusColor = isCritical ? '#DC2626' : isWarning ? '#D97706' : '#16A34A';
+                    const statusBg = isCritical ? '#FEF2F2' : isWarning ? '#FFFBEB' : '#F0FDF4';
+                    const statusBorder = isCritical ? '#FCA5A5' : isWarning ? '#FDE68A' : '#86EFAC';
+                    const fosMetric = isCritical ? '1.18' : isWarning ? '1.35' : '1.85';
 
                   return (
                     <tr
@@ -230,7 +233,18 @@ export const OperationsNodeExplorerPage: React.FC = () => {
                         {fosMetric}
                       </td>
                       <td style={{ padding: '10px 16px', color: '#475569' }}>
-                        {node.observationCount || 12} Telemetry Points
+                        {node.observations && node.observations.length > 0 ? (
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#1E40AF', fontFamily: 'monospace' }}>
+                              {node.observations[0].sensorCode} · {node.observations[0].measuredValue} {node.observations[0].unit || ''}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#059669', fontFamily: 'monospace', fontWeight: 600 }}>
+                              {node.observations[0].observation}
+                            </div>
+                          </div>
+                        ) : (
+                          <span>{node.observationCount ? `${node.observationCount} Telemetry Points` : 'No Sensor Data Received'}</span>
+                        )}
                       </td>
                       <td style={{ padding: '10px 16px', color: '#64748B', fontSize: '11px', fontFamily: 'monospace' }}>
                         {node.healthSource || 'PRIMARY_TELEMETRY'}
@@ -248,7 +262,7 @@ export const OperationsNodeExplorerPage: React.FC = () => {
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           )}
@@ -270,6 +284,19 @@ export const OperationsNodeExplorerPage: React.FC = () => {
               <div><span style={{ color: '#64748B', fontWeight: 600 }}>Current Health:</span> <strong style={{ color: selectedNodeDetails.currentHealth === 'CRITICAL' ? '#DC2626' : selectedNodeDetails.currentHealth === 'WARNING' ? '#D97706' : '#16A34A' }}>{selectedNodeDetails.currentHealth}</strong></div>
               <div><span style={{ color: '#64748B', fontWeight: 600 }}>Evaluation Timestamp:</span> <span style={{ fontFamily: 'monospace' }}>{selectedNodeDetails.evaluationTimestamp || '2026-07-27 09:30:00'}</span></div>
               <div><span style={{ color: '#64748B', fontWeight: 600 }}>Health Source:</span> {selectedNodeDetails.healthSource || 'PRIMARY_TELEMETRY'}</div>
+
+              {selectedNodeDetails.observations && selectedNodeDetails.observations.length > 0 && (
+                <div style={{ marginTop: '12px', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '12px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#0369A1', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Live Engineering Evidence ({selectedNodeDetails.observations.length} Observations)
+                  </div>
+                  {selectedNodeDetails.observations.map((obs, idx) => (
+                    <div key={idx} style={{ fontSize: '11px', color: '#0C4A6E', marginBottom: '4px' }}>
+                      <strong>{obs.sensorCode}</strong> ({obs.sensorType}): <span>{obs.measuredValue} {obs.unit}</span> — <em style={{ color: '#0284C7' }}>{obs.observation}</em>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div style={{ marginTop: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '12px', borderRadius: '6px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>

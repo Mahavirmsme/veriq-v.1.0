@@ -1,12 +1,12 @@
 /* 
   VERIQ Enterprise Infrastructure Intelligence Platform
-  Production Desktop Layout System
-  flagship enterprise product design system
+  Unified Single-Viewport Engineering Console Design System
 */
 
 :root {
-  --veriq-bg-white: #FFFFFF;
-  --veriq-bg-surface: #F8FAFC;
+  --veriq-bg-platform: #F1F5F9;
+  --veriq-bg-console: #FFFFFF;
+  --veriq-bg-header: #F8FAFC;
   --veriq-border-subtle: #E2E8F0;
   --veriq-border-medium: #CBD5E1;
   --veriq-text-primary: #0F172A;
@@ -17,8 +17,7 @@
   --veriq-status-healthy: #16A34A;
   --veriq-status-warning: #D97706;
   --veriq-status-critical: #DC2626;
-  --veriq-shadow-subtle: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
-  --veriq-shadow-elevated: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
+  --veriq-shadow-subtle: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 html, body, #root {
@@ -28,89 +27,123 @@ html, body, #root {
   height: 100vh;
   overflow: hidden;
   box-sizing: border-box;
-  background-color: #F1F5F9;
+  background-color: var(--veriq-bg-platform);
   color: var(--veriq-text-primary);
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 .veriq-workspace-container {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
-  padding: 10px 12px 12px;
+  padding: 10px 14px 8px;
   overflow: hidden;
   box-sizing: border-box;
-  grid-template-columns: 280px 1fr 340px;
-  grid-template-rows: 42px 1fr 185px;
-  grid-template-areas:
-    "contextbar contextbar contextbar"
-    "nav        hero       decision"
-    "ops        ops        ops";
   gap: 10px;
-  background-color: #F1F5F9;
+  background-color: var(--veriq-bg-platform);
 }
 
-/* Independent Context Selector Bar Navigation Layer */
+/* 1. Context Selector Bar */
 .veriq-region-contextbar {
-  grid-area: contextbar;
-  background-color: #FFFFFF;
-  border: 1px solid var(--veriq-border-subtle);
+  height: 38px;
+  min-height: 38px;
+  background-color: var(--veriq-bg-console);
+  border: 1px solid var(--veriq-border-medium);
   border-radius: 6px;
   display: flex;
   align-items: center;
   overflow: hidden;
   box-shadow: var(--veriq-shadow-subtle);
+  flex-shrink: 0;
 }
 
-/* Region 2: Left Operational Panel (Width 280px) */
-.veriq-region-nav {
-  grid-area: nav;
-  background-color: #FFFFFF;
-  border: 1px solid var(--veriq-border-subtle);
+/* 2. Main Unified Engineering Workspace Console */
+.veriq-main-console {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr 350px;
+  background-color: var(--veriq-bg-console);
+  border: 1px solid var(--veriq-border-medium);
   border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
   overflow: hidden;
   box-shadow: var(--veriq-shadow-subtle);
 }
 
-/* Region 3: Hero Engineering Focus Area */
-.veriq-region-hero {
-  grid-area: hero;
-  background-color: #FFFFFF;
-  border: 1px solid var(--veriq-border-subtle);
-  border-radius: 6px;
+/* Column Base Styling */
+.veriq-console-column {
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  height: 100%;
   overflow: hidden;
-  box-shadow: var(--veriq-shadow-subtle);
+  box-sizing: border-box;
 }
 
-/* Region 4: Engineering Decision Guidance Panel (Width 340px) */
-.veriq-region-decision {
-  grid-area: decision;
+.veriq-col-left {
+  border-right: 1px solid var(--veriq-border-subtle);
   background-color: #FFFFFF;
-  border: 1px solid var(--veriq-border-subtle);
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  overflow: hidden;
-  box-shadow: var(--veriq-shadow-subtle);
 }
 
-/* Region 5: Operational Intelligence & Awareness Panel */
-.veriq-region-ops {
-  grid-area: ops;
+.veriq-col-center {
+  border-right: 1px solid var(--veriq-border-subtle);
   background-color: #FFFFFF;
-  border: 1px solid var(--veriq-border-subtle);
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  overflow: hidden;
-  box-shadow: var(--veriq-shadow-subtle);
 }
+
+.veriq-col-right {
+  background-color: #FFFFFF;
+}
+
+/* Shared Panel Header (Identical across Left, Center, Right) */
+.veriq-column-header {
+  height: 38px;
+  min-height: 38px;
+  background-color: var(--veriq-bg-header);
+  border-bottom: 1px solid var(--veriq-border-medium);
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.veriq-column-header-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--veriq-text-primary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.veriq-column-header-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--veriq-text-muted);
+  font-family: monospace;
+  background: #F1F5F9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--veriq-border-subtle);
+}
+
+/* 3. Platform Minimal Footer */
+.veriq-region-footer {
+  height: 28px;
+  min-height: 28px;
+  background-color: #0F172A;
+  color: #94A3B8;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 11px;
+  font-family: 'Inter', monospace;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+

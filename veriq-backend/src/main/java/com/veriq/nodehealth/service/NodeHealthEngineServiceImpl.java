@@ -1,6 +1,7 @@
 package com.veriq.nodehealth.service;
 
 import com.veriq.engineeringengine.dto.EngineeringObservation;
+import com.veriq.mechanism.service.MechanismAssessmentEngine;
 import com.veriq.nodehealth.aggregator.ObservationAggregator;
 import com.veriq.nodehealth.dto.NodeHealthMetricsDTO;
 import com.veriq.nodehealth.dto.NodeHealthOutput;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class NodeHealthEngineServiceImpl implements NodeHealthEngineService, ObservationAggregator.NodeHealthAggregatorCallback {
 
     private final NodeStateRepositoryService nodeStateRepositoryService;
+    private final MechanismAssessmentEngine mechanismAssessmentEngine;
 
     private final AtomicLong totalSnapshotsProcessed = new AtomicLong(0);
     private final AtomicLong stableNodesCount = new AtomicLong(0);
@@ -25,8 +27,10 @@ public class NodeHealthEngineServiceImpl implements NodeHealthEngineService, Obs
     private volatile OffsetDateTime lastEvaluationTimestamp;
     private volatile NodeHealthOutput lastNodeHealthOutput;
 
-    public NodeHealthEngineServiceImpl(NodeStateRepositoryService nodeStateRepositoryService) {
+    public NodeHealthEngineServiceImpl(NodeStateRepositoryService nodeStateRepositoryService,
+                                       MechanismAssessmentEngine mechanismAssessmentEngine) {
         this.nodeStateRepositoryService = nodeStateRepositoryService;
+        this.mechanismAssessmentEngine = mechanismAssessmentEngine;
     }
 
     @Override
@@ -41,6 +45,11 @@ public class NodeHealthEngineServiceImpl implements NodeHealthEngineService, Obs
         }
 
         totalSnapshotsProcessed.incrementAndGet();
+
+        // Invoke existing MechanismAssessmentEngine for the seven EKP strategies on the runtime telemetry path
+        if (mechanismAssessmentEngine != null) {
+            mechanismAssessmentEngine.evaluateNodeMechanisms(snapshot);
+        }
 
         Map<String, EngineeringObservation> obsMap = snapshot.getObservations();
         int count = obsMap != null ? obsMap.size() : 0;

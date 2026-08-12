@@ -32,7 +32,7 @@ public class HumidityInterpreter implements SensorInterpreter {
         obs.setSensorCode(packet.getSensorCode());
         obs.setSensorType(packet.getSensorType());
         obs.setMeasuredValue(val);
-        obs.setUnit(packet.getUnit() != null ? packet.getUnit() : "% VWC");
+        obs.setUnit(packet.getUnit());
         obs.setObservation(obsStr);
         obs.setConfidence(1.0);
         obs.setStatus("ACTIVE");

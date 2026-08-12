@@ -24,7 +24,7 @@ public class GenericInterpreter implements SensorInterpreter {
             obs.setSensorCode(packet.getSensorCode());
             obs.setSensorType(packet.getSensorType());
             obs.setMeasuredValue(val);
-            obs.setUnit(packet.getUnit() != null ? packet.getUnit() : "units");
+            obs.setUnit(packet.getUnit());
         }
 
         obs.setObservation("NOT_IMPLEMENTED_YET");

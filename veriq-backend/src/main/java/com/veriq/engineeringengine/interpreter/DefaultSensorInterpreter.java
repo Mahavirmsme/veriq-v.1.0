@@ -23,7 +23,7 @@ public class DefaultSensorInterpreter implements SensorInterpreter {
         obs.setSensorCode(packet.getSensorCode());
         obs.setSensorType(packet.getSensorType());
         obs.setMeasuredValue(val);
-        obs.setUnit(packet.getUnit() != null ? packet.getUnit() : "units");
+        obs.setUnit(packet.getUnit());
         obs.setObservation("NOMINAL_READING");
         obs.setConfidence(1.0);
         obs.setInterpreterVersion("v1.0.0");

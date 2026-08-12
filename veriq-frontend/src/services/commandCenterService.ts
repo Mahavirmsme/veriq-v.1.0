@@ -30,6 +30,28 @@ export interface RegionStateDTO {
   evaluationTimestamp: string;
 }
 
+export interface EngineeringObservationDTO {
+  observationId: string;
+  runtimeSensorId: string;
+  sensorCode: string;
+  sensorType: string;
+  measuredValue: number;
+  unit: string;
+  observation: string;
+  confidence: number;
+  interpreterName: string;
+  interpreterVersion: string;
+  status: string;
+  reason?: string;
+  observationTimestamp: string;
+}
+
+export interface MechanismAssessmentDTO {
+  mechanismType: string;
+  status: 'UNEVALUATED' | 'EVALUATED' | 'DATA_INSUFFICIENT';
+  evaluationMessage: string;
+}
+
 export interface NodeStateDTO {
   id: string;
   engineeringNodeId: string;
@@ -41,6 +63,8 @@ export interface NodeStateDTO {
   observationCount: number;
   evaluationTimestamp: string;
   healthSource: string;
+  observations?: EngineeringObservationDTO[];
+  mechanisms?: MechanismAssessmentDTO[];
 }
 
 export interface DeploymentZoneStateDTO {

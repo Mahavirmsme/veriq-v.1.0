@@ -369,7 +369,7 @@ export const AdminOrganizationsPage: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>MONITORING NODES</div>
-                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#0284C7', marginTop: '2px' }}>{sensors.length > 0 ? sensors.length : 32}</div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#0284C7', marginTop: '2px' }}>{sensors.length}</div>
                 </div>
               </div>
 
@@ -426,7 +426,7 @@ export const AdminOrganizationsPage: React.FC = () => {
                     {activeSystemDataModal === 'PROJECTS' && `System Data: Organization Projects (${projects.length})`}
                     {activeSystemDataModal === 'LINEAR_ASSETS' && `System Data: Linear Assets (${linearAssetsList.length})`}
                     {activeSystemDataModal === 'POINT_ASSETS' && `System Data: Point Assets (${pointAssetsList.length})`}
-                    {activeSystemDataModal === 'NODES' && `System Data: Monitoring Nodes (${sensors.length > 0 ? sensors.length : 32})`}
+                    {activeSystemDataModal === 'NODES' && `System Data: Monitoring Nodes (${sensors.length})`}
                   </h3>
                   <span style={{ fontSize: '11px', color: '#94A3B8' }}>Live repository data from backend system</span>
                 </div>

@@ -110,7 +110,12 @@ export const EngineeringDecisionPanel: React.FC = () => {
       badge: 'Audit Log',
       badgeColor: '#475569',
       content: [
-        { label: new Date().toISOString().split('T')[0], text: `Commissioning Record & Runtime Evaluation locked for ${contextName}.` }
+        { 
+          label: nodeStates.length > 0 && nodeStates[0].evaluationTimestamp 
+            ? new Date(nodeStates[0].evaluationTimestamp).toISOString().split('T')[0] 
+            : new Date().toISOString().split('T')[0], 
+          text: `Commissioning Record & Runtime Evaluation locked for ${contextName}. Source: ${nodeStates[0]?.healthSource || 'Node Health Engine'}` 
+        }
       ]
     }
   ];

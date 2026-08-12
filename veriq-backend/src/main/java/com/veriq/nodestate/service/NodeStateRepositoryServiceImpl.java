@@ -111,6 +111,8 @@ public class NodeStateRepositoryServiceImpl implements NodeStateRepositoryServic
         dto.setEvaluationVersion("v1.0.0");
         dto.setEvaluationTimestamp(OffsetDateTime.now());
         dto.setHealthSource("ENGINEERING_BASELINE");
+
+        nodeStateMapper.populateObservations(dto, engineeringNodeId);
         return dto;
     }
 
@@ -136,10 +138,11 @@ public class NodeStateRepositoryServiceImpl implements NodeStateRepositoryServic
 
         return activeNodes.stream().map(node -> {
             NodeStateRecord rec = recordMap.get(node.getId());
+            NodeStateDTO dto;
             if (rec != null) {
-                return nodeStateMapper.toDto(rec);
+                dto = nodeStateMapper.toDto(rec);
             } else {
-                NodeStateDTO dto = new NodeStateDTO();
+                dto = new NodeStateDTO();
                 dto.setId(UUID.randomUUID());
                 dto.setEngineeringNodeId(node.getId());
                 dto.setNodeCode(node.getNodeCode());
@@ -150,8 +153,9 @@ public class NodeStateRepositoryServiceImpl implements NodeStateRepositoryServic
                 dto.setEvaluationVersion("v1.0.0");
                 dto.setEvaluationTimestamp(OffsetDateTime.now());
                 dto.setHealthSource("ENGINEERING_BASELINE");
-                return dto;
+                nodeStateMapper.populateObservations(dto, node.getId());
             }
+            return dto;
         }).collect(Collectors.toList());
     }
 }

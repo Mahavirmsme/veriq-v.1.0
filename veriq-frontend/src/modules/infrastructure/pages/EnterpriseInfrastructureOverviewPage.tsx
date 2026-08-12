@@ -151,7 +151,7 @@ export const EnterpriseInfrastructureOverviewPage: React.FC = () => {
   const projectsCount = useMemo(() => projects ? projects.length : 0, [projects]);
   const assetsCount = useMemo(() => assets ? assets.length : 0, [assets]);
   const regionsCount = useMemo(() => regions ? regions.length : 0, [regions]);
-  const nodesCount = useMemo(() => sensors ? sensors.length : 0, [sensors]);
+  const nodesCount = useMemo(() => nodeStates ? nodeStates.length : 0, [nodeStates]);
 
   const criticalProjectsCount = useMemo(() => {
     if (!assetStates) return 0;
@@ -300,116 +300,133 @@ export const EnterpriseInfrastructureOverviewPage: React.FC = () => {
   const executiveIntel = useMemo(() => {
     // 1. Engineering Node Level
     if (selectedNodeId.startsWith('node-sensor-') || selectedNode) {
-      const code = selectedNode && 'sensorCode' in selectedNode ? selectedNode.sensorCode : 'NODE-NAG-01';
+      const code = selectedNode && 'sensorCode' in selectedNode ? selectedNode.sensorCode : (selectedNode && 'nodeCode' in selectedNode ? selectedNode.nodeCode : 'N/A');
+      const nodeSt = nodeStates?.find(n => n.nodeCode === code || n.engineeringNodeId === (selectedNode as any)?.id);
+      const health = nodeSt?.currentHealth || 'UNKNOWN';
+      const lastTs = nodeSt?.evaluationTimestamp ? new Date(nodeSt.evaluationTimestamp).toISOString().split('T')[0] : 'N/A';
       return {
-        selectionName: `Telemetry Node ${code}`,
+        selectionName: code !== 'N/A' ? `Telemetry Node ${code}` : 'Engineering Node',
         selectionType: 'Engineering Node Intelligence',
-        healthStatus: 'STABLE',
-        healthBg: '#ECFDF5',
-        healthColor: '#065F46',
-        healthBorder: '#86EFAC',
-        alertsCount: 0,
-        alertsText: '0 Active Node Warnings',
-        pendingDecisionsText: 'No Immediate Node Action Needed',
-        lastInspectionDate: '2026-07-31',
-        runtimeStatus: 'ONLINE / ACTIVE',
-        recommendedAction: 'Continue Automated Telemetry Ingestion & Sensor Ingestion'
+        healthStatus: health,
+        healthBg: health === 'CRITICAL' ? '#FEF2F2' : health === 'WARNING' ? '#FFFBEB' : health === 'STABLE' ? '#ECFDF5' : '#F8FAFC',
+        healthColor: health === 'CRITICAL' ? '#991B1B' : health === 'WARNING' ? '#92400E' : health === 'STABLE' ? '#065F46' : '#475569',
+        healthBorder: health === 'CRITICAL' ? '#FCA5A5' : health === 'WARNING' ? '#FDE68A' : health === 'STABLE' ? '#86EFAC' : '#CBD5E1',
+        alertsCount: health === 'CRITICAL' || health === 'WARNING' ? 1 : 0,
+        alertsText: health === 'CRITICAL' ? '1 Critical Node Alert' : health === 'WARNING' ? '1 Warning Node Alert' : '0 Node Warnings',
+        pendingDecisionsText: nodeSt?.healthSource ? `Source: ${nodeSt.healthSource}` : 'No Immediate Node Action Needed',
+        lastInspectionDate: lastTs,
+        runtimeStatus: health === 'OFFLINE' ? 'OFFLINE' : 'LIVE RUNTIME EVALUATED',
+        recommendedAction: 'Continue Automated Telemetry Ingestion & Sensor Evaluation'
       };
     }
 
     // 2. Deployment Zone Level
     if (selectedNodeId.startsWith('node-zone-') || selectedZone) {
-      const code = selectedZone ? selectedZone.zoneCode : 'ZONE-NAG-01';
+      const code = selectedZone ? selectedZone.zoneCode : 'N/A';
+      const health = selectedZone?.currentHealth || 'UNKNOWN';
+      const lastTs = selectedZone?.evaluationTimestamp ? new Date(selectedZone.evaluationTimestamp).toISOString().split('T')[0] : 'N/A';
       return {
-        selectionName: `Deployment Zone ${code}`,
+        selectionName: code !== 'N/A' ? `Deployment Zone ${code}` : 'Deployment Zone',
         selectionType: 'Deployment Zone Intelligence',
-        healthStatus: selectedZone?.currentHealth || 'OPTIMAL',
-        healthBg: '#ECFDF5',
-        healthColor: '#065F46',
-        healthBorder: '#86EFAC',
-        alertsCount: 0,
-        alertsText: '0 Critical Zone Anomalies',
+        healthStatus: health,
+        healthBg: health === 'CRITICAL' ? '#FEF2F2' : health === 'WARNING' ? '#FFFBEB' : health === 'STABLE' ? '#ECFDF5' : '#F8FAFC',
+        healthColor: health === 'CRITICAL' ? '#991B1B' : health === 'WARNING' ? '#92400E' : health === 'STABLE' ? '#065F46' : '#475569',
+        healthBorder: health === 'CRITICAL' ? '#FCA5A5' : health === 'WARNING' ? '#FDE68A' : health === 'STABLE' ? '#86EFAC' : '#CBD5E1',
+        alertsCount: selectedZone ? (selectedZone.criticalNodes + selectedZone.warningNodes) : 0,
+        alertsText: selectedZone ? `${selectedZone.criticalNodes} Critical, ${selectedZone.warningNodes} Warning Nodes` : '0 Zone Anomalies',
         pendingDecisionsText: 'Zone Inspection Clearance Review',
-        lastInspectionDate: '2026-07-31',
-        runtimeStatus: 'OPERATIONAL / OPTIMAL',
-        recommendedAction: 'Approve Scheduled Sensor Calibrations for West Package'
+        lastInspectionDate: lastTs,
+        runtimeStatus: 'OPERATIONAL RUNTIME EVALUATED',
+        recommendedAction: 'Review Zone Node Aggregation & Calibration Logs'
       };
     }
 
     // 3. Region Level
     if (selectedNodeId.startsWith('node-region-') || selectedRegion) {
-      const name = selectedRegion ? selectedRegion.regionName : 'Nagpur Eastern Region';
+      const name = selectedRegion ? selectedRegion.regionName : 'Engineering Region';
+      const regSt = regionStates?.find(r => r.regionId === selectedRegion?.id || r.regionName === name);
+      const health = regSt?.currentHealth || 'UNKNOWN';
+      const lastTs = regSt?.evaluationTimestamp ? new Date(regSt.evaluationTimestamp).toISOString().split('T')[0] : 'N/A';
       return {
         selectionName: name,
         selectionType: 'Region Intelligence',
-        healthStatus: 'OPTIMAL',
-        healthBg: '#ECFDF5',
-        healthColor: '#065F46',
-        healthBorder: '#86EFAC',
-        alertsCount: 0,
-        alertsText: '0 Region Alerts Registered',
-        pendingDecisionsText: 'Routine Inspection Audit Clearance',
-        lastInspectionDate: '2026-07-30',
-        runtimeStatus: 'ACTIVE / OPTIMAL',
+        healthStatus: health,
+        healthBg: health === 'CRITICAL' ? '#FEF2F2' : health === 'WARNING' ? '#FFFBEB' : health === 'STABLE' ? '#ECFDF5' : '#F8FAFC',
+        healthColor: health === 'CRITICAL' ? '#991B1B' : health === 'WARNING' ? '#92400E' : health === 'STABLE' ? '#065F46' : '#475569',
+        healthBorder: health === 'CRITICAL' ? '#FCA5A5' : health === 'WARNING' ? '#FDE68A' : health === 'STABLE' ? '#86EFAC' : '#CBD5E1',
+        alertsCount: regSt ? (regSt.criticalZones + regSt.warningZones) : 0,
+        alertsText: regSt ? `${regSt.criticalZones} Critical, ${regSt.warningZones} Warning Zones` : '0 Region Alerts',
+        pendingDecisionsText: 'Regional Corridor Compliance Review',
+        lastInspectionDate: lastTs,
+        runtimeStatus: 'LIVE REGIONAL EVALUATION',
         recommendedAction: 'Review Regional Corridor Performance & Compliance Logs'
       };
     }
 
     // 4. Asset Level
     if (selectedNodeId.startsWith('node-asset-') || selectedNodeId.startsWith('node-linear-') || selectedNodeId.startsWith('node-point-') || activeCard === 'ASSETS') {
-      const name = selectedAsset ? selectedAsset.assetName : (activeAssetCategory === 'LINEAR' ? 'Nagpur Mainline Corridor' : 'Point Asset Group');
+      const name = selectedAsset ? selectedAsset.assetName : 'Infrastructure Asset';
+      const astSt = assetStates?.find(a => a.assetId === selectedAsset?.id || a.assetName === name);
       const isLinear = selectedAsset ? String(selectedAsset.assetNature).toUpperCase() === 'LINEAR' : activeAssetCategory === 'LINEAR';
+      const health = astSt?.currentHealth || 'UNKNOWN';
+      const lastTs = astSt?.evaluationTimestamp ? new Date(astSt.evaluationTimestamp).toISOString().split('T')[0] : 'N/A';
       return {
         selectionName: name,
         selectionType: isLinear ? 'Linear Asset Intelligence' : 'Point Asset Intelligence',
-        healthStatus: 'OPTIMAL',
-        healthBg: '#ECFDF5',
-        healthColor: '#065F46',
-        healthBorder: '#86EFAC',
-        alertsCount: 0,
-        alertsText: '0 Structural Anomalies Detected',
-        pendingDecisionsText: 'Annual Asset Structural Health Certification',
-        lastInspectionDate: '2026-07-29',
-        runtimeStatus: 'MONITORED / ACTIVE',
+        healthStatus: health,
+        healthBg: health === 'CRITICAL' ? '#FEF2F2' : health === 'WARNING' ? '#FFFBEB' : health === 'STABLE' ? '#ECFDF5' : '#F8FAFC',
+        healthColor: health === 'CRITICAL' ? '#991B1B' : health === 'WARNING' ? '#92400E' : health === 'STABLE' ? '#065F46' : '#475569',
+        healthBorder: health === 'CRITICAL' ? '#FCA5A5' : health === 'WARNING' ? '#FDE68A' : health === 'STABLE' ? '#86EFAC' : '#CBD5E1',
+        alertsCount: astSt ? (astSt.criticalRegions + astSt.warningRegions) : 0,
+        alertsText: astSt ? `${astSt.criticalRegions} Critical, ${astSt.warningRegions} Warning Sectors` : '0 Structural Anomalies',
+        pendingDecisionsText: 'Asset Health Certification Review',
+        lastInspectionDate: lastTs,
+        runtimeStatus: 'LIVE ASSET EVALUATION',
         recommendedAction: 'Proceed with Scheduled Corridor Lifecycle Maintenance'
       };
     }
 
     // 5. Project Level
     if (selectedNodeId.startsWith('node-proj-') || selectedProject || activeCard === 'PROJECTS') {
-      const name = selectedProject ? selectedProject.projectName : 'Samruddhi Mahamarg Highway Corridor';
+      const name = selectedProject ? selectedProject.projectName : 'Engineering Project';
+      const projAssetSts = assetStates ? assetStates.filter(s => assets?.some(a => a.projectId === selectedProject?.id && (a.id === s.assetId || a.assetName === s.assetName))) : [];
+      const hasCritical = projAssetSts.some(s => s.currentHealth === 'CRITICAL');
+      const hasWarning = projAssetSts.some(s => s.currentHealth === 'WARNING');
+      const health = projAssetSts.length === 0 ? 'UNKNOWN' : hasCritical ? 'CRITICAL' : hasWarning ? 'WARNING' : 'STABLE';
+      const latestTs = assetStates && assetStates.length > 0 ? new Date(Math.max(...assetStates.map(s => new Date(s.evaluationTimestamp).getTime()))).toISOString().split('T')[0] : 'N/A';
       return {
         selectionName: name,
         selectionType: 'Project Intelligence',
-        healthStatus: 'OPTIMAL',
-        healthBg: '#ECFDF5',
-        healthColor: '#065F46',
-        healthBorder: '#86EFAC',
+        healthStatus: health,
+        healthBg: health === 'CRITICAL' ? '#FEF2F2' : health === 'WARNING' ? '#FFFBEB' : health === 'STABLE' ? '#ECFDF5' : '#F8FAFC',
+        healthColor: health === 'CRITICAL' ? '#991B1B' : health === 'WARNING' ? '#92400E' : health === 'STABLE' ? '#065F46' : '#475569',
+        healthBorder: health === 'CRITICAL' ? '#FCA5A5' : health === 'WARNING' ? '#FDE68A' : health === 'STABLE' ? '#86EFAC' : '#CBD5E1',
         alertsCount: criticalProjectsCount,
         alertsText: criticalProjectsCount > 0 ? `${criticalProjectsCount} Actionable Project Alerts` : '0 Critical Project Alerts',
         pendingDecisionsText: 'Executive Milestone Clearance Approval',
-        lastInspectionDate: '2026-07-31',
-        runtimeStatus: 'ON-SCHEDULE / ACTIVE',
-        recommendedAction: 'Approve Phase-2 Engineering Milestone Sign-Off'
+        lastInspectionDate: latestTs,
+        runtimeStatus: 'LIVE PROJECT EVALUATION',
+        recommendedAction: 'Review Engineering Milestone Sign-Off & Health Records'
       };
     }
 
     // Default: Organization Level
+    const latestTs = assetStates && assetStates.length > 0 ? new Date(Math.max(...assetStates.map(s => new Date(s.evaluationTimestamp).getTime()))).toISOString().split('T')[0] : 'N/A';
     return {
-      selectionName: org ? org.name : 'MSRDC Maharashtra Organization',
+      selectionName: org ? org.name : 'Organization',
       selectionType: 'Portfolio Intelligence',
-      healthStatus: 'OPTIMAL',
-      healthBg: '#ECFDF5',
-      healthColor: '#065F46',
-      healthBorder: '#86EFAC',
+      healthStatus: criticalProjectsCount > 0 ? 'WARNING' : 'STABLE',
+      healthBg: criticalProjectsCount > 0 ? '#FFFBEB' : '#ECFDF5',
+      healthColor: criticalProjectsCount > 0 ? '#92400E' : '#065F46',
+      healthBorder: criticalProjectsCount > 0 ? '#FDE68A' : '#86EFAC',
       alertsCount: criticalProjectsCount,
       alertsText: criticalProjectsCount > 0 ? `${criticalProjectsCount} Enterprise Alerts` : '0 System Critical Alerts',
       pendingDecisionsText: `${pendingDecisionsCount} Executive Decisions Pending Review`,
-      lastInspectionDate: '2026-07-31',
-      runtimeStatus: 'SYSTEM OPTIMAL',
+      lastInspectionDate: latestTs,
+      runtimeStatus: 'SYSTEM RUNTIME EVALUATED',
       recommendedAction: 'Maintain Strategic Executive Oversight & Governance'
     };
-  }, [selectedNodeId, selectedNode, selectedZone, selectedRegion, selectedAsset, selectedProject, activeCard, activeAssetCategory, org, criticalProjectsCount, pendingDecisionsCount]);
+  }, [selectedNodeId, selectedNode, selectedZone, selectedRegion, selectedAsset, selectedProject, activeCard, activeAssetCategory, org, criticalProjectsCount, pendingDecisionsCount, nodeStates, zoneStates, regionStates, assetStates, assets]);
 
   // Executive Control Panel Cards Configuration
   const controlPanelCards = [

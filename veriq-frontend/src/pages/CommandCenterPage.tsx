@@ -241,7 +241,30 @@ export const CommandCenterPage: React.FC = () => {
               </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                {selectedNodeSensors.length > 0 ? (
+                {nodeState?.observations && nodeState.observations.length > 0 ? (
+                  nodeState.observations.map((obs, idx) => (
+                    <div key={idx} style={{
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '6px',
+                      padding: '14px',
+                      background: '#FFFFFF'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{obs.sensorType}</span>
+                        <span style={{ fontSize: '10px', color: '#64748B', fontFamily: 'monospace' }}>{obs.sensorCode}</span>
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '4px 0' }}>
+                        {obs.measuredValue !== undefined && obs.measuredValue !== null ? `${obs.measuredValue} ${obs.unit || ''}` : 'Operational'}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#2563EB', fontFamily: 'monospace' }}>
+                          {obs.observation || 'ACTIVE_TELEMETRY'}
+                        </span>
+                        {renderStatusBadge(obs.status || 'STABLE', 'sm')}
+                      </div>
+                    </div>
+                  ))
+                ) : selectedNodeSensors.length > 0 ? (
                   selectedNodeSensors.map((s, idx) => (
                     <div key={idx} style={{
                       border: '1px solid #E2E8F0',
@@ -279,7 +302,7 @@ export const CommandCenterPage: React.FC = () => {
                   ENGINEERING EVIDENCE ASSESSMENT
                 </h4>
                 <p style={{ fontSize: '12px', color: '#334155', lineHeight: 1.5, margin: 0 }}>
-                  Structural and telemetry observations at Chainage {selectedNode.formattedChainage || `${selectedNode.chainage || 0} KM`} demonstrate stable operational equilibrium. Zero structural safety breaches detected.
+                  Evaluated Node State: <strong>{nodeState?.currentHealth || 'UNKNOWN'}</strong>. Total aggregated runtime observations: <strong>{nodeState?.observationCount || 0}</strong>. Evaluation Source: <strong>{nodeState?.healthSource || 'Node Health Engine'}</strong>. Evaluation Version: <strong>{nodeState?.evaluationVersion || 'v1.0.0'}</strong>.
                 </p>
               </div>
 

@@ -15,21 +15,40 @@ async function resolveTenantContext(): Promise<string | null> {
   if (existing) return existing;
 
   if (!tenantResolutionPromise) {
-    tenantResolutionPromise = axios.get('/api/v1/organizations')
-      .then(res => {
-        const orgs = res.data?.data;
+    tenantResolutionPromise = (async () => {
+      try {
+        let bootOrgName: string | null = null;
+        try {
+          const statusRes = await axios.get('/api/v1/bootstrap/status');
+          bootOrgName = statusRes.data?.data?.organizationName || statusRes.data?.organizationName || null;
+        } catch {
+          // Non-blocking bootstrap status fallback
+        }
+
+        const orgsRes = await axios.get('/api/v1/organizations');
+        const orgs: any[] = orgsRes.data?.data || [];
+
         if (orgs && orgs.length > 0) {
-          const orgId = orgs[0].id;
-          localStorage.setItem('veriq_tenant_id', orgId);
-          localStorage.setItem('veriq_organization_id', orgId);
-          return orgId;
+          const matchedOrg = bootOrgName
+            ? orgs.find(o => o.name && o.name.trim().toLowerCase() === bootOrgName!.trim().toLowerCase())
+            : null;
+
+          const authoritativeOrg = matchedOrg || (orgs.length === 1 ? orgs[0] : null);
+
+          if (authoritativeOrg && authoritativeOrg.id) {
+            const orgId = authoritativeOrg.id;
+            localStorage.setItem('veriq_tenant_id', orgId);
+            localStorage.setItem('veriq_organization_id', orgId);
+            return orgId;
+          }
         }
         return null;
-      })
-      .catch(() => null)
-      .finally(() => {
-        tenantResolutionPromise = null;
-      });
+      } catch {
+        return null;
+      }
+    })().finally(() => {
+      tenantResolutionPromise = null;
+    });
   }
   return tenantResolutionPromise;
 }

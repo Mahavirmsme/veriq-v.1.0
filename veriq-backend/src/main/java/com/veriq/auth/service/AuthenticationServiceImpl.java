@@ -42,23 +42,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             }
             // Password Verification
             if (verifyPassword(inputPassword, user.getPasswordHash())) {
-                String displayName = user.getFirstName() + (user.getLastName() != null ? " " + user.getLastName() : "");
+                String displayName = user.getFirstName() + (user.getLastName() != null && !user.getLastName().isEmpty() ? " " + user.getLastName() : "");
                 return LoginResponseDTO.success(user.getId(), user.getEmail(), displayName);
             }
             return LoginResponseDTO.failure("Authentication Failed: Invalid password.");
-        }
-
-        // 2. Check System Administrator Bootstrap Record
-        Optional<PlatformBootstrapRecord> adminOpt = platformBootstrapRepository.findFirstByOrderByCreatedAtAsc();
-        if (adminOpt.isPresent() && adminOpt.get().isInitialized()) {
-            PlatformBootstrapRecord admin = adminOpt.get();
-            if (inputEmail.equalsIgnoreCase(admin.getAdminEmail()) || inputEmail.equalsIgnoreCase(admin.getAdminName())) {
-                String expectedHash = "SHA256:" + Integer.toHexString(inputPassword.hashCode());
-                if (expectedHash.equals(admin.getAdminPasswordHash()) || inputPassword.equals("veriq2026")) {
-                    return LoginResponseDTO.success(admin.getId(), admin.getAdminEmail(), admin.getAdminName());
-                }
-                return LoginResponseDTO.failure("Authentication Failed: Invalid password.");
-            }
         }
 
         return LoginResponseDTO.failure("Authentication Failed: User not found.");
