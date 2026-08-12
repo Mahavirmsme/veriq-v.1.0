@@ -13,7 +13,7 @@ namespace VeriqLauncher
     {
         private static Process backendProcess = null;
         private static NotifyIcon trayIcon = null;
-        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.1";
+        private static string appName = "VERIQ Infrastructure Intelligence Platform 2.1.2";
         private static string targetUrl = "http://localhost:8080";
         private static string baseDir = "";
         private static string logsDir = "";
@@ -45,10 +45,10 @@ namespace VeriqLauncher
                 Directory.CreateDirectory(Path.Combine(veriqData, "runtime"));
             }
 
-            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.1 STARTED ==========");
+            LogLauncher("========== VERIQ PLATFORM LAUNCHER 2.1.2 STARTED ==========");
 
             bool createdNew;
-            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_211", out createdNew))
+            using (Mutex mutex = new Mutex(true, "VERIQ_PLATFORM_STANDALONE_LAUNCHER_212", out createdNew))
             {
                 if (!createdNew)
                 {

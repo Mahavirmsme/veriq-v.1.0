@@ -1,11 +1,11 @@
 ; =====================================================================
-; VERIQ Infrastructure Intelligence Platform 2.1.1 Inno Setup Script
+; VERIQ Infrastructure Intelligence Platform 2.1.2 Inno Setup Script
 ; Official Standalone Enterprise Offline Distribution Package
 ; =====================================================================
 
 #define MyAppName "VERIQ Infrastructure Intelligence Platform"
 #define MyAppShortName "VERIQ Platform"
-#define MyAppVersion "2.1.1"
+#define MyAppVersion "2.1.2"
 #define MyAppPublisher "VERIQ Systems"
 #define MyAppURL "http://localhost:8080"
 #define MyAppExeName "veriq-launcher.exe"
@@ -21,13 +21,16 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={commonpf}\VERIQ Platform
 DefaultGroupName={#MyAppShortName}
 DisableProgramGroupPage=yes
-OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.1-Release
-OutputBaseFilename=VERIQ-2.1.1-Setup
+OutputDir=C:\Users\HP\.gemini\antigravity\scratch\veriq\VERIQ-2.1.2-Release
+OutputBaseFilename=VERIQ-2.1.2-Setup
 Compression=lzma2/max
 SolidCompression=no
 WizardStyle=modern
 PrivilegesRequired=admin
 UninstallDisplayName={#MyAppName} {#MyAppVersion}
+AppMutex=VERIQ_PLATFORM_STANDALONE_LAUNCHER_212,VERIQ_PLATFORM_STANDALONE_LAUNCHER_211,VERIQ_PLATFORM_STANDALONE_LAUNCHER_210
+CloseApplications=yes
+CloseApplicationsFilter=*veriq-launcher.exe*
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -49,8 +52,21 @@ Name: "{app}\logs"; Permissions: users-modify
 Name: "{app}\postgresql\data"; Permissions: users-modify
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExeName}"; IconIndex: 0
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch VERIQ Infrastructure Intelligence Platform"; Flags: postinstall nowait skipifsilent
+
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssInstall then
+  begin
+    // Safely terminate any running VERIQ launcher process to release file lock before replacement
+    Exec('taskkill.exe', '/IM veriq-launcher.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    Sleep(500);
+  end;
+end;

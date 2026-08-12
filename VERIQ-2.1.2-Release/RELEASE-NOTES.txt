@@ -1,0 +1,39 @@
+====================================================================
+VERIQ — Engineering Decision Intelligence Platform
+RELEASE NOTES — VERSION 2.1.2 (INSTALLER LIFECYCLE HARDENING)
+====================================================================
+
+PRODUCT IDENTITY:
+Product: VERIQ Infrastructure Intelligence Platform
+Version: 2.1.2
+Release Type: External Computer Standalone Windows Distribution Package
+Package Artifact: VERIQ-2.1.2-Setup.exe
+
+DESCRIPTION:
+VERIQ 2.1.2 provides installer lifecycle hardening for standalone Windows desktop installations and upgrades. This release handles background process detection (AppMutex & CloseApplications), safe process termination prior to file extraction, and explicit shortcut WorkingDir configuration.
+
+LIFECYCLE HARDENING IN VERIQ 2.1.2:
+1. Running Application Detection & Close:
+   - Configured AppMutex=VERIQ_PLATFORM_STANDALONE_LAUNCHER_212,VERIQ_PLATFORM_STANDALONE_LAUNCHER_211,VERIQ_PLATFORM_STANDALONE_LAUNCHER_210 in Inno Setup.
+   - Configured CloseApplications=yes and CloseApplicationsFilter=*veriq-launcher.exe*.
+   - Added automated TaskKill process closure hook in installer [Code] section to safely release veriq-launcher.exe file handles prior to file replacement, eliminating 'DeleteFile failed; code 5 Access is denied'.
+
+2. Desktop & Start Menu Shortcuts:
+   - Explicit WorkingDir="{app}" configured on both Desktop and Start Menu shortcut entries in [Icons].
+   - Prevents invalid working directory resolution when launching from Desktop shortcut.
+
+3. Database Bootstrap Preservation:
+   - Preserved automatic veriq_db creation on fresh installations.
+   - Preserves existing veriq_db database instances during upgrades.
+
+INSTALLATION & UPGRADE INSTRUCTIONS:
+1. Transfer VERIQ-2.1.2-Setup.exe to target Windows desktop machine.
+2. Run VERIQ-2.1.2-Setup.exe (works on fresh installations or directly over existing installations).
+3. If an older VERIQ instance is running in the background, installer automatically terminates the old veriq-launcher.exe, replaces the files cleanly, and finishes installation.
+4. Launch VERIQ Platform via Desktop shortcut.
+
+REQUIREMENTS:
+- OS: 64-bit Windows 10/11 or Windows Server 2016+
+- Port: 8080 (backend & UI)
+- External Dependencies: None (embedded JRE and embedded PostgreSQL included)
+====================================================================
